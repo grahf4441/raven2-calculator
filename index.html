@@ -301,6 +301,21 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         </div>
 
         <div class="row">
+            <label>PVP Damage</label>
+            <input id="skill_pvpDamage" value="0">
+        </div>
+
+        <div class="row">
+            <label>Bash Damage</label>
+            <input id="skill_bashDamage" value="0">
+        </div>
+
+        <div class="row">
+            <label>Double Bash Damage</label>
+            <input id="skill_doubleBashDamage" value="0">
+        </div>
+
+        <div class="row">
             <label>Critical Hit?</label>
             <input id="skill_isCrit" class="checkbox-input" type="checkbox">
         </div>
@@ -398,6 +413,21 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         <div class="row">
             <label>Ignore Damage Reduction</label>
             <input id="basic_ignoreDr" value="0">
+        </div>
+
+        <div class="row">
+            <label>PVP Damage</label>
+            <input id="basic_pvpDamage" value="0">
+        </div>
+
+        <div class="row">
+            <label>Bash Damage</label>
+            <input id="basic_bashDamage" value="0">
+        </div>
+
+        <div class="row">
+            <label>Double Bash Damage</label>
+            <input id="basic_doubleBashDamage" value="0">
         </div>
 
         <div class="row">
@@ -527,6 +557,10 @@ function calculateSkill() {
     const fda = num("skill_fda");
     const dmgAmpOnHit = num("skill_dmgAmpOnHit");
     const ignoreDr = num("skill_ignoreDr");
+    const pvpDamage = num("skill_pvpDamage");
+    const bashDamage = num("skill_bashDamage");
+    const doubleBashDamage = num("skill_doubleBashDamage");
+    const flatBonusDamage = pvpDamage + bashDamage + doubleBashDamage;
     const isCrit = checked("skill_isCrit");
     const baseCrit = num("skill_baseCrit");
     const critDmgAmp = num("skill_critDmgAmp");
@@ -562,6 +596,10 @@ Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
 Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
 Ignore Damage Reduction: ${fmt(ignoreDr)}
+PVP Damage: ${fmt(pvpDamage)}
+Bash Damage: ${fmt(bashDamage)}
+Double Bash Damage: ${fmt(doubleBashDamage)}
+Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
 Critical Hit: ${isCrit ? "YES" : "NO"}
 Base Crit Multiplier: ${fmt(baseCrit)}
 Crit Damage Amp: ${fmt(critDmgAmp)}%
@@ -597,7 +635,8 @@ max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
         const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
         const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
         const afterFda = crit.result * fdaMultiplier;
-        const afterSkillReduction = afterFda / skillReductionDivisor;
+        const afterFlatBonus = afterFda + flatBonusDamage;
+        const afterSkillReduction = afterFlatBonus / skillReductionDivisor;
         const afterFdr = afterSkillReduction / fdrDivisor;
         finalDamage = minimumDamage(afterFdr);
 
@@ -625,8 +664,11 @@ After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.r
 After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
+After Flat Bonus Damage:
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+
 After Skill Damage Reduction:
-${fmt(afterFda)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
+${fmt(afterFlatBonus)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
 
 After Final Damage Resistance:
 ${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
@@ -640,7 +682,8 @@ max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
         const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
         const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
         const afterFda = crit.result * fdaMultiplier;
-        const afterHiddenDr = afterFda - hiddenDr;
+        const afterFlatBonus = afterFda + flatBonusDamage;
+        const afterHiddenDr = afterFlatBonus - hiddenDr;
         const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeReduction = minimumDamage(afterDr);
         const afterSkillReduction = afterMinimumBeforeReduction / skillReductionDivisor;
@@ -662,8 +705,11 @@ After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.r
 After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
+After Flat Bonus Damage:
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+
 After Hidden DR:
-${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+${fmt(afterFlatBonus)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
 After Effective DR Stat:
 ${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
@@ -695,6 +741,10 @@ function calculateBasic() {
     const fda = num("basic_fda");
     const dmgAmpOnHit = num("basic_dmgAmpOnHit");
     const ignoreDr = num("basic_ignoreDr");
+    const pvpDamage = num("basic_pvpDamage");
+    const bashDamage = num("basic_bashDamage");
+    const doubleBashDamage = num("basic_doubleBashDamage");
+    const flatBonusDamage = pvpDamage + bashDamage + doubleBashDamage;
     const isCrit = checked("basic_isCrit");
     const baseCrit = num("basic_baseCrit");
     const critDmgAmp = num("basic_critDmgAmp");
@@ -729,6 +779,10 @@ Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
 Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
 Ignore Damage Reduction: ${fmt(ignoreDr)}
+PVP Damage: ${fmt(pvpDamage)}
+Bash Damage: ${fmt(bashDamage)}
+Double Bash Damage: ${fmt(doubleBashDamage)}
+Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
 Critical Hit: ${isCrit ? "YES" : "NO"}
 Base Crit Multiplier: ${fmt(baseCrit)}
 Crit Damage Amp: ${fmt(critDmgAmp)}%
@@ -763,7 +817,8 @@ max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
         const afterBasicAmp = afterMinimumBeforeScaling * basicAmpMultiplier;
         const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
         const afterFda = crit.result * fdaMultiplier;
-        const afterBasicReduction = afterFda / basicReductionDivisor;
+        const afterFlatBonus = afterFda + flatBonusDamage;
+        const afterBasicReduction = afterFlatBonus / basicReductionDivisor;
         const afterFdr = afterBasicReduction / fdrDivisor;
         finalDamage = minimumDamage(afterFdr);
 
@@ -788,8 +843,11 @@ After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.r
 After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
+After Flat Bonus Damage:
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+
 After Basic Attack Reduction:
-${fmt(afterFda)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
+${fmt(afterFlatBonus)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
 
 After Final Damage Resistance:
 ${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
@@ -802,7 +860,8 @@ max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
         const afterBasicAmp = totalAttack * basicAmpMultiplier;
         const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
         const afterFda = crit.result * fdaMultiplier;
-        const afterHiddenDr = afterFda - hiddenDr;
+        const afterFlatBonus = afterFda + flatBonusDamage;
+        const afterHiddenDr = afterFlatBonus - hiddenDr;
         const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeReduction = minimumDamage(afterDr);
         const afterBasicReduction = afterMinimumBeforeReduction / basicReductionDivisor;
@@ -821,8 +880,11 @@ After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.r
 After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
+After Flat Bonus Damage:
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+
 After Hidden DR:
-${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+${fmt(afterFlatBonus)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
 After Effective DR Stat:
 ${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
