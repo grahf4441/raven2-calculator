@@ -8,7 +8,7 @@
             background: #1e1e1e;
             color: #f2f2f2;
             font-family: Arial, sans-serif;
-            max-width: 1200px;
+            max-width: 1800px;
             margin: auto;
             padding: 20px;
         }
@@ -24,15 +24,19 @@
 
         .calculators {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 24px;
         }
 
-        .card {
+        .card, .mode-box {
             background: #262626;
             border: 1px solid #444;
             border-radius: 10px;
             padding: 18px;
+        }
+
+        .mode-box {
+            margin-bottom: 24px;
         }
 
         .row {
@@ -41,11 +45,11 @@
 
         label {
             display: inline-block;
-            width: 230px;
+            width: 245px;
         }
 
-        input {
-            width: 120px;
+        input, select {
+            width: 160px;
             padding: 6px;
             background: #111;
             color: white;
@@ -75,19 +79,51 @@
             border: 1px solid #333;
             border-radius: 8px;
             font-family: Consolas, monospace;
-            white-space: pre-wrap;
+            white-space: pre;
             line-height: 1.45;
         }
 
         .final {
             color: #00ff88;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
+        }
+
+        .stage-result {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .quick-final {
+            margin-top: 14px;
+            padding: 12px;
+            background: #111;
+            border: 1px solid #00aa66;
+            border-radius: 8px;
+            color: #00ff88;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
         }
 
         .note {
             color: #bbb;
             margin-bottom: 20px;
+        }
+
+        .calc-layout {
+            display: grid;
+            grid-template-columns: 430px minmax(900px, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .result {
+            margin-top: 0 !important;
+            height: 760px;
+            overflow-y: auto;
+            position: sticky;
+            top: 20px;
         }
 
         @media (max-width: 900px) {
@@ -96,7 +132,7 @@
             }
 
             label {
-                width: 210px;
+                width: 220px;
             }
         }
     </style>
@@ -108,24 +144,40 @@
 
 <p class="note">
 Current theory model: Attack is always fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
-Hidden DR is automatically estimated as DEF × 0.5.
+Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg Res When Hit / 100).
 </p>
+
+<div class="mode-box">
+    <h2>Formula Mode</h2>
+
+    <div class="row">
+        <label>Damage Formula Order</label>
+        <select id="formulaMode" onchange="calculateSkill(); calculateBasic();">
+            <option value="drBeforeScaling" selected>DR before skill/basic scaling - weak attackers can hit for 1</option>
+            <option value="drAfterScaling">DR after skill/basic scaling - older version</option>
+        </select>
+    </div>
+
+    <p class="note">
+        Recommended default: <b>DR before skill/basic scaling</b>. This better explains weak players hitting for 1 damage.
+    </p>
+</div>
 
 <div class="calculators">
 
     <div class="card">
-        <h2>Skill Damage Calculator</h2>
+        <h2>Skill Damage Calculator</h2><div class="calc-layout"><div>
 
         <h3>Attacker</h3>
 
         <div class="row">
             <label>Attack</label>
-            <input id="skill_attack" value="900">
+            <input id="skill_attack" value="600">
         </div>
 
         <div class="row">
             <label>Weapon Attack</label>
-            <input id="skill_weaponAttack" value="500">
+            <input id="skill_weaponAttack" value="190">
         </div>
 
         <div class="row">
@@ -156,13 +208,23 @@ Hidden DR is automatically estimated as DEF × 0.5.
         </div>
 
         <div class="row">
+            <label>PVP Defense</label>
+            <input id="skill_pvpDef" value="0">
+        </div>
+
+        <div class="row">
+            <label>Dmg Res When Hit %</label>
+            <input id="skill_dmgResWhenHit" value="0">
+        </div>
+
+        <div class="row">
             <label>DR Stat</label>
             <input id="skill_dr" value="190">
         </div>
 
         <div class="row">
             <label>Skill Damage Reduction</label>
-            <input id="skill_reduction" value="75">
+            <input id="skill_reduction" value="70">
         </div>
 
         <div class="row">
@@ -172,28 +234,30 @@ Hidden DR is automatically estimated as DEF × 0.5.
 
         <button onclick="calculateSkill()">Calculate Skill Damage</button>
 
-        <div id="skill_result" class="result"></div>
+        <div id="skill_final_quick" class="quick-final">FINAL SKILL DAMAGE: --</div>
+
+        </div><div><div id="skill_result" class="result"></div></div></div>
     </div>
 
 
     <div class="card">
-        <h2>Basic Attack Calculator</h2>
+        <h2>Basic Attack Calculator</h2><div class="calc-layout"><div>
 
         <h3>Attacker</h3>
 
         <div class="row">
             <label>Attack</label>
-            <input id="basic_attack" value="900">
+            <input id="basic_attack" value="600">
         </div>
 
         <div class="row">
             <label>Weapon Attack</label>
-            <input id="basic_weaponAttack" value="500">
+            <input id="basic_weaponAttack" value="190">
         </div>
 
         <div class="row">
             <label>Basic Attack Amp %</label>
-            <input id="basic_amp" value="0">
+            <input id="basic_amp" value="40">
         </div>
 
         <div class="row">
@@ -214,13 +278,23 @@ Hidden DR is automatically estimated as DEF × 0.5.
         </div>
 
         <div class="row">
+            <label>PVP Defense</label>
+            <input id="basic_pvpDef" value="0">
+        </div>
+
+        <div class="row">
+            <label>Dmg Res When Hit %</label>
+            <input id="basic_dmgResWhenHit" value="0">
+        </div>
+
+        <div class="row">
             <label>DR Stat</label>
             <input id="basic_dr" value="190">
         </div>
 
         <div class="row">
             <label>Basic Attack Reduction</label>
-            <input id="basic_reduction" value="75">
+            <input id="basic_reduction" value="70">
         </div>
 
         <div class="row">
@@ -230,7 +304,9 @@ Hidden DR is automatically estimated as DEF × 0.5.
 
         <button onclick="calculateBasic()">Calculate Basic Attack Damage</button>
 
-        <div id="basic_result" class="result"></div>
+        <div id="basic_final_quick" class="quick-final">FINAL BASIC DAMAGE: --</div>
+
+        </div><div><div id="basic_result" class="result"></div></div></div>
     </div>
 
 </div>
@@ -245,6 +321,14 @@ function fmt(value) {
     return Number(value).toFixed(2);
 }
 
+function currentMode() {
+    return document.getElementById("formulaMode").value;
+}
+
+function minimumDamage(value) {
+    return Math.max(1, value);
+}
+
 function calculateSkill() {
     const attack = num("skill_attack");
     const weaponAttack = num("skill_weaponAttack");
@@ -253,73 +337,136 @@ function calculateSkill() {
     const skillAmp = num("skill_amp");
     const fda = num("skill_fda");
     const def = num("skill_def");
-    const hiddenDr = def * 0.5;
+    const pvpDef = num("skill_pvpDef");
+    const dmgResWhenHit = num("skill_dmgResWhenHit");
+    const totalDefense = def + pvpDef;
+    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100);
+    const hiddenDr = totalDefense * defenseToDrRatio;
     const dr = num("skill_dr");
     const skillReduction = num("skill_reduction");
     const fdr = num("skill_fdr");
 
     const weaponResDivisor = 1 + weaponRes / 100;
     const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
-
     const totalAttack = attack + effectiveWeaponAttack;
 
     const skillMultiplier = skillPercent / 100;
-    const afterSkillPercent = totalAttack * skillMultiplier;
-
     const skillAmpMultiplier = 1 + skillAmp / 100;
-    const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
-
     const fdaMultiplier = 1 + fda / 100;
-    const afterFda = afterSkillAmp * fdaMultiplier;
-
-    const afterHiddenDr = afterFda - hiddenDr;
-    const afterDr = afterHiddenDr - dr;
-
     const skillReductionDivisor = 1 + skillReduction / 100;
-    const afterSkillReduction = afterDr / skillReductionDivisor;
-
     const fdrDivisor = 1 + fdr / 100;
-    const finalDamage = afterSkillReduction / fdrDivisor;
 
-    document.getElementById("skill_result").innerHTML =
-`========== SKILL CALCULATION ==========
+    let log = `========== SKILL CALCULATION ==========
+
+Formula Mode:
+${currentMode() === "drBeforeScaling" ? "DR before skill scaling" : "DR after skill scaling"}
 
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
 DEF: ${fmt(def)}
+PVP Defense: ${fmt(pvpDef)}
+Total Defense: ${fmt(totalDefense)}
+Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
 
-Hidden DR from DEF:
-${fmt(def)} × 0.50 = ${fmt(hiddenDr)}
+Hidden DR from Defense:
+(${fmt(def)} + ${fmt(pvpDef)}) × ${fmt(defenseToDrRatio)} <span class="stage-result">= ${fmt(hiddenDr)}</span>
 
 Effective Weapon Attack:
-${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
+${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} <span class="stage-result">= ${fmt(effectiveWeaponAttack)}</span>
 
 Total Attack:
-${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+${fmt(attack)} + ${fmt(effectiveWeaponAttack)} <span class="stage-result">= ${fmt(totalAttack)}</span>
 
-After Skill %:
-${fmt(totalAttack)} × ${fmt(skillMultiplier)} = ${fmt(afterSkillPercent)}
+`;
 
-After Skill Amp:
-${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} = ${fmt(afterSkillAmp)}
+    if (currentMode() === "drBeforeScaling") {
+        const afterHiddenDr = totalAttack - hiddenDr;
+        const afterDr = afterHiddenDr - dr;
+        const afterMinimumBeforeScaling = minimumDamage(afterDr);
 
-After Final Damage Amp:
-${fmt(afterSkillAmp)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
+        const afterSkillPercent = afterMinimumBeforeScaling * skillMultiplier;
+        const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
+        const afterFda = afterSkillAmp * fdaMultiplier;
+        const afterSkillReduction = afterFda / skillReductionDivisor;
+        const afterFdr = afterSkillReduction / fdrDivisor;
+        const finalDamage = minimumDamage(afterFdr);
 
-After Hidden DR:
-${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+        log += `After Hidden DR:
+${fmt(totalAttack)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
 
 After DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(dr)} = ${fmt(afterDr)}
+${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+
+Minimum Damage Floor Before Scaling:
+max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeScaling)}</span>
+
+After Skill %:
+${fmt(afterMinimumBeforeScaling)} × ${fmt(skillMultiplier)} <span class="stage-result">= ${fmt(afterSkillPercent)}</span>
+
+After Skill Amp:
+${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} <span class="stage-result">= ${fmt(afterSkillAmp)}</span>
+
+After Final Damage Amp:
+${fmt(afterSkillAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
 
 After Skill Damage Reduction:
-${fmt(afterDr)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
+${fmt(afterFda)} ÷ ${fmt(skillReductionDivisor)} <span class="stage-result">= ${fmt(afterSkillReduction)}</span>
 
 After Final Damage Resistance:
-${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(finalDamage)}
+${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+
+Final Minimum Damage Floor:
+max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
 
 <span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
+    } else {
+        const afterSkillPercent = totalAttack * skillMultiplier;
+        const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
+        const afterFda = afterSkillAmp * fdaMultiplier;
+        const afterHiddenDr = afterFda - hiddenDr;
+        const afterDr = afterHiddenDr - dr;
+        const afterMinimumBeforeReduction = minimumDamage(afterDr);
+        const afterSkillReduction = afterMinimumBeforeReduction / skillReductionDivisor;
+        const afterFdr = afterSkillReduction / fdrDivisor;
+        const finalDamage = minimumDamage(afterFdr);
+
+        log += `After Skill %:
+${fmt(totalAttack)} × ${fmt(skillMultiplier)} <span class="stage-result">= ${fmt(afterSkillPercent)}</span>
+
+After Skill Amp:
+${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} <span class="stage-result">= ${fmt(afterSkillAmp)}</span>
+
+After Final Damage Amp:
+${fmt(afterSkillAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
+
+After Hidden DR:
+${fmt(afterFda)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
+
+After DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+
+Minimum Damage Floor Before Reduction:
+max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeReduction)}</span>
+
+After Skill Damage Reduction:
+${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(skillReductionDivisor)} <span class="stage-result">= ${fmt(afterSkillReduction)}</span>
+
+After Final Damage Resistance:
+${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+
+Final Minimum Damage Floor:
+max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
+
+<span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
+    }
+
+    document.getElementById("skill_result").innerHTML = log;
+    const quickSkill = document.getElementById("skill_final_quick");
+    if (quickSkill) {
+        const match = log.match(/FINAL SKILL DAMAGE: ([0-9.]+)/);
+        quickSkill.innerHTML = match ? `FINAL SKILL DAMAGE: ${match[1]}` : "FINAL SKILL DAMAGE: --";
+    }
 }
 
 function calculateBasic() {
@@ -329,69 +476,144 @@ function calculateBasic() {
     const basicAmp = num("basic_amp");
     const fda = num("basic_fda");
     const def = num("basic_def");
-    const hiddenDr = def * 0.5;
+    const pvpDef = num("basic_pvpDef");
+    const dmgResWhenHit = num("basic_dmgResWhenHit");
+    const totalDefense = def + pvpDef;
+    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100);
+    const hiddenDr = totalDefense * defenseToDrRatio;
     const dr = num("basic_dr");
     const basicReduction = num("basic_reduction");
     const fdr = num("basic_fdr");
 
     const weaponResDivisor = 1 + weaponRes / 100;
     const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
-
     const totalAttack = attack + effectiveWeaponAttack;
 
     const basicAmpMultiplier = 1 + basicAmp / 100;
-    const afterBasicAmp = totalAttack * basicAmpMultiplier;
-
     const fdaMultiplier = 1 + fda / 100;
-    const afterFda = afterBasicAmp * fdaMultiplier;
-
-    const afterHiddenDr = afterFda - hiddenDr;
-    const afterDr = afterHiddenDr - dr;
-
     const basicReductionDivisor = 1 + basicReduction / 100;
-    const afterBasicReduction = afterDr / basicReductionDivisor;
-
     const fdrDivisor = 1 + fdr / 100;
-    const finalDamage = afterBasicReduction / fdrDivisor;
 
-    document.getElementById("basic_result").innerHTML =
-`========== BASIC ATTACK CALCULATION ==========
+    let log = `========== BASIC ATTACK CALCULATION ==========
+
+Formula Mode:
+${currentMode() === "drBeforeScaling" ? "DR before basic scaling" : "DR after basic scaling"}
 
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
 DEF: ${fmt(def)}
+PVP Defense: ${fmt(pvpDef)}
+Total Defense: ${fmt(totalDefense)}
+Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
 
-Hidden DR from DEF:
-${fmt(def)} × 0.50 = ${fmt(hiddenDr)}
+Hidden DR from Defense:
+(${fmt(def)} + ${fmt(pvpDef)}) × ${fmt(defenseToDrRatio)} <span class="stage-result">= ${fmt(hiddenDr)}</span>
 
 Effective Weapon Attack:
-${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
+${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} <span class="stage-result">= ${fmt(effectiveWeaponAttack)}</span>
 
 Total Attack:
-${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+${fmt(attack)} + ${fmt(effectiveWeaponAttack)} <span class="stage-result">= ${fmt(totalAttack)}</span>
 
-After Basic Attack Amp:
-${fmt(totalAttack)} × ${fmt(basicAmpMultiplier)} = ${fmt(afterBasicAmp)}
+`;
 
-After Final Damage Amp:
-${fmt(afterBasicAmp)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
+    if (currentMode() === "drBeforeScaling") {
+        const afterHiddenDr = totalAttack - hiddenDr;
+        const afterDr = afterHiddenDr - dr;
+        const afterMinimumBeforeScaling = minimumDamage(afterDr);
 
-After Hidden DR:
-${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+        const afterBasicAmp = afterMinimumBeforeScaling * basicAmpMultiplier;
+        const afterFda = afterBasicAmp * fdaMultiplier;
+        const afterBasicReduction = afterFda / basicReductionDivisor;
+        const afterFdr = afterBasicReduction / fdrDivisor;
+        const finalDamage = minimumDamage(afterFdr);
+
+        log += `After Hidden DR:
+${fmt(totalAttack)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
 
 After DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(dr)} = ${fmt(afterDr)}
+${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+
+Minimum Damage Floor Before Scaling:
+max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeScaling)}</span>
+
+After Basic Attack Amp:
+${fmt(afterMinimumBeforeScaling)} × ${fmt(basicAmpMultiplier)} <span class="stage-result">= ${fmt(afterBasicAmp)}</span>
+
+After Final Damage Amp:
+${fmt(afterBasicAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
 
 After Basic Attack Reduction:
-${fmt(afterDr)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
+${fmt(afterFda)} ÷ ${fmt(basicReductionDivisor)} <span class="stage-result">= ${fmt(afterBasicReduction)}</span>
 
 After Final Damage Resistance:
-${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(finalDamage)}
+${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+
+Final Minimum Damage Floor:
+max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
 
 <span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
+    } else {
+        const afterBasicAmp = totalAttack * basicAmpMultiplier;
+        const afterFda = afterBasicAmp * fdaMultiplier;
+        const afterHiddenDr = afterFda - hiddenDr;
+        const afterDr = afterHiddenDr - dr;
+        const afterMinimumBeforeReduction = minimumDamage(afterDr);
+        const afterBasicReduction = afterMinimumBeforeReduction / basicReductionDivisor;
+        const afterFdr = afterBasicReduction / fdrDivisor;
+        const finalDamage = minimumDamage(afterFdr);
+
+        log += `After Basic Attack Amp:
+${fmt(totalAttack)} × ${fmt(basicAmpMultiplier)} <span class="stage-result">= ${fmt(afterBasicAmp)}</span>
+
+After Final Damage Amp:
+${fmt(afterBasicAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
+
+After Hidden DR:
+${fmt(afterFda)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
+
+After DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+
+Minimum Damage Floor Before Reduction:
+max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeReduction)}</span>
+
+After Basic Attack Reduction:
+${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(basicReductionDivisor)} <span class="stage-result">= ${fmt(afterBasicReduction)}</span>
+
+After Final Damage Resistance:
+${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+
+Final Minimum Damage Floor:
+max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
+
+<span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
+    }
+
+    document.getElementById("basic_result").innerHTML = log;
+    const quickBasic = document.getElementById("basic_final_quick");
+    if (quickBasic) {
+        const match = log.match(/FINAL BASIC ATTACK DAMAGE: ([0-9.]+)/);
+        quickBasic.innerHTML = match ? `FINAL BASIC DAMAGE: ${match[1]}` : "FINAL BASIC DAMAGE: --";
+    }
 }
 
+function setupLiveUpdates() {
+    document.querySelectorAll("input, select").forEach(function(element) {
+        element.addEventListener("input", function() {
+            calculateSkill();
+            calculateBasic();
+        });
+
+        element.addEventListener("change", function() {
+            calculateSkill();
+            calculateBasic();
+        });
+    });
+}
+
+setupLiveUpdates();
 calculateSkill();
 calculateBasic();
 </script>
