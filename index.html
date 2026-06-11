@@ -4,169 +4,259 @@
     <meta charset="UTF-8">
     <title>Raven2 Damage Calculator</title>
     <style>
-        body {
-            background: #1e1e1e;
-            color: #f2f2f2;
-            font-family: Arial, sans-serif;
-            max-width: 1800px;
-            margin: auto;
-            padding: 20px;
+        :root {
+            --bg: #101217;
+            --panel: #181b23;
+            --panel-2: #202532;
+            --line: #313849;
+            --text: #eef2f8;
+            --muted: #9da7ba;
+            --accent: #48d597;
+            --accent-2: #4aa8ff;
+            --danger: #ff6464;
+            --input: #0d0f14;
         }
 
-        h1, h2, h3 {
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 28px;
+            background:
+                radial-gradient(circle at top left, rgba(72, 213, 151, 0.12), transparent 34%),
+                radial-gradient(circle at top right, rgba(74, 168, 255, 0.10), transparent 28%),
+                var(--bg);
+            color: var(--text);
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+        }
+
+        .page-shell {
+            max-width: 1900px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-end;
+            margin-bottom: 22px;
+            padding: 22px;
+            background: linear-gradient(135deg, rgba(32, 37, 50, 0.95), rgba(24, 27, 35, 0.95));
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: 34px;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            max-width: 880px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid rgba(72, 213, 151, 0.4);
+            border-radius: 999px;
+            background: rgba(72, 213, 151, 0.08);
+            color: var(--accent);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        h2, h3 {
             margin-top: 0;
         }
 
         h2 {
-            border-bottom: 1px solid #444;
-            padding-bottom: 6px;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--line);
+            font-size: 22px;
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            margin: 18px 0 10px;
+            color: var(--accent-2);
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
         }
 
         .calculators {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 26px;
         }
 
-        .card, .mode-box {
-            background: #262626;
-            border: 1px solid #444;
-            border-radius: 10px;
-            padding: 18px;
-        }
-
-        .mode-box {
-            margin-bottom: 24px;
-        }
-
-        .row {
-            margin-bottom: 10px;
-        }
-
-        .checkbox-input {
-            width: auto;
-            transform: scale(1.2);
-        }
-
-        label {
-            display: inline-block;
-            width: 245px;
-        }
-
-        input, select {
-            width: 160px;
-            padding: 6px;
-            background: #111;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 5px;
-        }
-
-        button {
-            padding: 10px 16px;
-            margin-top: 12px;
-            cursor: pointer;
-            border: 0;
-            border-radius: 6px;
-            background: #00aa66;
-            color: white;
-            font-weight: bold;
-        }
-
-        button:hover {
-            background: #00cc77;
-        }
-
-        .result {
-            margin-top: 18px;
-            padding: 12px;
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 8px;
-            font-family: Consolas, monospace;
-            white-space: pre;
-            line-height: 1.45;
-        }
-
-        .final {
-            color: #00ff88;
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .stage-result {
-            color: #00ff88;
-            font-weight: bold;
-        }
-
-        .quick-final {
-            margin-top: 14px;
-            padding: 12px;
-            background: #111;
-            border: 1px solid #00aa66;
-            border-radius: 8px;
-            color: #00ff88;
-            font-size: 24px;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        .note {
-            color: #bbb;
-            margin-bottom: 20px;
+        .card {
+            background: rgba(24, 27, 35, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
         }
 
         .calc-layout {
             display: grid;
             grid-template-columns: 430px minmax(900px, 1fr);
-            gap: 16px;
+            gap: 20px;
             align-items: start;
         }
 
-        .result {
-            margin-top: 0 !important;
-            height: 760px;
-            overflow-y: auto;
-            position: sticky;
-            top: 20px;
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 150px;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 10px;
         }
 
-        @media (max-width: 900px) {
-            .calculators {
+        label {
+            color: #cbd3e2;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 9px 10px;
+            background: var(--input);
+            color: var(--text);
+            border: 1px solid #384153;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(72, 213, 151, 0.14);
+        }
+
+        .checkbox-input {
+            width: auto;
+            transform: scale(1.2);
+            justify-self: start;
+            accent-color: var(--accent);
+        }
+
+        button {
+            width: 100%;
+            padding: 11px 16px;
+            margin-top: 12px;
+            cursor: pointer;
+            border: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #22b477, #4aa8ff);
+            color: white;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            box-shadow: 0 12px 26px rgba(34, 180, 119, 0.22);
+        }
+
+        button:hover {
+            filter: brightness(1.08);
+        }
+
+        .quick-final {
+            margin-top: 14px;
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(72, 213, 151, 0.12), rgba(74, 168, 255, 0.10));
+            border: 1px solid rgba(72, 213, 151, 0.45);
+            border-radius: 14px;
+            color: var(--accent);
+            font-size: 24px;
+            font-weight: 900;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        .result {
+            margin-top: 0;
+            height: 760px;
+            overflow: auto;
+            position: sticky;
+            top: 20px;
+            padding: 16px;
+            background: #0b0d12;
+            border: 1px solid #2d3545;
+            border-radius: 14px;
+            font-family: Consolas, Monaco, monospace;
+            white-space: pre;
+            line-height: 1.48;
+            color: #d9e3f2;
+        }
+
+        .stage-result {
+            color: var(--accent);
+            font-weight: 900;
+        }
+
+        .final {
+            display: inline-block;
+            margin-top: 4px;
+            color: var(--accent);
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .note {
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            body {
+                padding: 18px;
+            }
+
+            .hero {
+                display: block;
+            }
+
+            .badge {
+                margin-top: 16px;
+            }
+
+            .calc-layout {
                 grid-template-columns: 1fr;
             }
 
-            label {
-                width: 220px;
+            .result {
+                position: static;
+                height: 520px;
             }
         }
     </style>
 </head>
 
 <body>
+<div class="page-shell">
 
-<h1>Raven2 Damage Calculator</h1>
-
-<p class="note">
+<section class="hero">
+    <div>
+        <h1>Raven2 Damage Calculator</h1>
+        <p>
 Current theory model: Attack is always fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
 Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100).
 </p>
-
-<div class="mode-box">
-    <h2>Formula Mode</h2>
-
-    <div class="row">
-        <label>Damage Formula Order</label>
-        <select id="formulaMode" onchange="calculateSkill(); calculateBasic();">
-            <option value="drBeforeScaling" selected>DR before skill/basic scaling - weak attackers can hit for 1</option>
-            <option value="drAfterScaling">DR after skill/basic scaling - older version</option>
-        </select>
     </div>
-
-    <p class="note">
-        Recommended default: <b>DR before skill/basic scaling</b>. This better explains weak players hitting for 1 damage.
-    </p>
-</div>
+    <div class="badge">DR-before-scaling model</div>
+</section>
 
 <div class="calculators">
 
@@ -393,10 +483,6 @@ function fmt(value) {
     return Number(value).toFixed(2);
 }
 
-function currentMode() {
-    const element = document.getElementById("formulaMode");
-    return element ? element.value : "drBeforeScaling";
-}
 
 function minimumDamage(value) {
     return Math.max(1, value);
@@ -471,9 +557,6 @@ function calculateSkill() {
 
     let log = `========== SKILL CALCULATION ==========
 
-Formula Mode:
-${currentMode() === "drBeforeScaling" ? "DR before skill scaling" : "DR after skill scaling"}
-
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
@@ -505,7 +588,7 @@ max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
 
     let finalDamage;
 
-    if (currentMode() === "drBeforeScaling") {
+    if (true) {
         const afterHiddenDr = totalAttack - hiddenDr;
         const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeScaling = minimumDamage(afterDr);
@@ -641,9 +724,6 @@ function calculateBasic() {
 
     let log = `========== BASIC ATTACK CALCULATION ==========
 
-Formula Mode:
-${currentMode() === "drBeforeScaling" ? "DR before basic scaling" : "DR after basic scaling"}
-
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
@@ -675,7 +755,7 @@ max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
 
     let finalDamage;
 
-    if (currentMode() === "drBeforeScaling") {
+    if (true) {
         const afterHiddenDr = totalAttack - hiddenDr;
         const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeScaling = minimumDamage(afterDr);
@@ -785,5 +865,6 @@ calculateSkill();
 calculateBasic();
 </script>
 
+</div>
 </body>
 </html>
