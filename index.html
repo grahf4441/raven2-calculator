@@ -311,8 +311,13 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         </div>
 
         <div class="row">
-            <label>Double Bash Damage</label>
-            <input id="skill_doubleBashDamage" value="0">
+            <label>Bash?</label>
+            <input id="skill_isBash" class="checkbox-input" type="checkbox">
+        </div>
+
+        <div class="row">
+            <label>Double Bash?</label>
+            <input id="skill_isDoubleBash" class="checkbox-input" type="checkbox">
         </div>
 
         <div class="row">
@@ -426,8 +431,13 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         </div>
 
         <div class="row">
-            <label>Double Bash Damage</label>
-            <input id="basic_doubleBashDamage" value="0">
+            <label>Bash?</label>
+            <input id="basic_isBash" class="checkbox-input" type="checkbox">
+        </div>
+
+        <div class="row">
+            <label>Double Bash?</label>
+            <input id="basic_isDoubleBash" class="checkbox-input" type="checkbox">
         </div>
 
         <div class="row">
@@ -559,8 +569,17 @@ function calculateSkill() {
     const ignoreDr = num("skill_ignoreDr");
     const pvpDamage = num("skill_pvpDamage");
     const bashDamage = num("skill_bashDamage");
-    const doubleBashDamage = num("skill_doubleBashDamage");
-    const flatBonusDamage = pvpDamage + bashDamage + doubleBashDamage;
+    const isBash = checked("skill_isBash");
+    const isDoubleBash = checked("skill_isDoubleBash");
+
+    let effectiveBashDamage = 0;
+    if (isDoubleBash) {
+        effectiveBashDamage = bashDamage * 2;
+    } else if (isBash) {
+        effectiveBashDamage = bashDamage;
+    }
+
+    const flatBonusDamage = pvpDamage + effectiveBashDamage;
     const isCrit = checked("skill_isCrit");
     const baseCrit = num("skill_baseCrit");
     const critDmgAmp = num("skill_critDmgAmp");
@@ -597,8 +616,10 @@ Weapon Attack Resistance: ${fmt(weaponRes)}%
 Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
 Ignore Damage Reduction: ${fmt(ignoreDr)}
 PVP Damage: ${fmt(pvpDamage)}
-Bash Damage: ${fmt(bashDamage)}
-Double Bash Damage: ${fmt(doubleBashDamage)}
+Bash Damage Stat: ${fmt(bashDamage)}
+Bash: ${isBash ? "YES" : "NO"}
+Double Bash: ${isDoubleBash ? "YES" : "NO"}
+Effective Bash Damage: ${fmt(effectiveBashDamage)}
 Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
 Critical Hit: ${isCrit ? "YES" : "NO"}
 Base Crit Multiplier: ${fmt(baseCrit)}
@@ -665,7 +686,7 @@ After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(effectiveBashDamage)} = ${fmt(afterFlatBonus)}
 
 After Skill Damage Reduction:
 ${fmt(afterFlatBonus)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
@@ -706,7 +727,7 @@ After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(effectiveBashDamage)} = ${fmt(afterFlatBonus)}
 
 After Hidden DR:
 ${fmt(afterFlatBonus)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
@@ -743,8 +764,17 @@ function calculateBasic() {
     const ignoreDr = num("basic_ignoreDr");
     const pvpDamage = num("basic_pvpDamage");
     const bashDamage = num("basic_bashDamage");
-    const doubleBashDamage = num("basic_doubleBashDamage");
-    const flatBonusDamage = pvpDamage + bashDamage + doubleBashDamage;
+    const isBash = checked("basic_isBash");
+    const isDoubleBash = checked("basic_isDoubleBash");
+
+    let effectiveBashDamage = 0;
+    if (isDoubleBash) {
+        effectiveBashDamage = bashDamage * 2;
+    } else if (isBash) {
+        effectiveBashDamage = bashDamage;
+    }
+
+    const flatBonusDamage = pvpDamage + effectiveBashDamage;
     const isCrit = checked("basic_isCrit");
     const baseCrit = num("basic_baseCrit");
     const critDmgAmp = num("basic_critDmgAmp");
@@ -780,8 +810,10 @@ Weapon Attack Resistance: ${fmt(weaponRes)}%
 Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
 Ignore Damage Reduction: ${fmt(ignoreDr)}
 PVP Damage: ${fmt(pvpDamage)}
-Bash Damage: ${fmt(bashDamage)}
-Double Bash Damage: ${fmt(doubleBashDamage)}
+Bash Damage Stat: ${fmt(bashDamage)}
+Bash: ${isBash ? "YES" : "NO"}
+Double Bash: ${isDoubleBash ? "YES" : "NO"}
+Effective Bash Damage: ${fmt(effectiveBashDamage)}
 Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
 Critical Hit: ${isCrit ? "YES" : "NO"}
 Base Crit Multiplier: ${fmt(baseCrit)}
@@ -844,7 +876,7 @@ After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(effectiveBashDamage)} = ${fmt(afterFlatBonus)}
 
 After Basic Attack Reduction:
 ${fmt(afterFlatBonus)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
@@ -881,7 +913,7 @@ After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bashDamage)} + ${fmt(doubleBashDamage)} = ${fmt(afterFlatBonus)}
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(effectiveBashDamage)} = ${fmt(afterFlatBonus)}
 
 After Hidden DR:
 ${fmt(afterFlatBonus)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
