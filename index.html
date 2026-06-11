@@ -1,23 +1,28 @@
-<!-- Raven2Calculator_v0.1.2
-Changed: Fixed live calculation after moving PvP/Bash before Hidden DR and DR.
-Reason: Weak attackers were still dealing too much damage. New model allows mitigation to reduce bash hits to 1.
+<!--
+Raven2Calculator_v0.1.3
+
+Changed:
+- Moved PvP Damage and Bash Damage back out of the attack packet.
+- PvP/Bash are now added after Final Damage Amp, before Skill/Basic Reduction and Final Damage Resistance.
+- Hidden DR ratio changed from 0.35 to 0.75 for testing.
+- Shared fields now sync between Skill and Basic calculators.
+- Skill-specific fields remain independent: Skill %, Skill Amp %, Skill Damage Reduction.
+- Basic-specific fields remain independent: Basic Attack Amp %, Basic Attack Reduction.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Raven2 Damage Calculator</title>
+    <title>Raven2 Damage Calculator v0.1.3</title>
     <style>
         :root {
             --bg: #101217;
             --panel: #181b23;
-            --panel-2: #202532;
             --line: #313849;
             --text: #eef2f8;
             --muted: #9da7ba;
             --accent: #48d597;
             --accent-2: #4aa8ff;
-            --danger: #ff6464;
             --input: #0d0f14;
         }
 
@@ -62,7 +67,7 @@ Reason: Weak attackers were still dealing too much damage. New model allows miti
         }
 
         .hero p {
-            max-width: 880px;
+            max-width: 950px;
             margin: 0;
             color: var(--muted);
             line-height: 1.45;
@@ -71,13 +76,12 @@ Reason: Weak attackers were still dealing too much damage. New model allows miti
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
             padding: 8px 12px;
             border: 1px solid rgba(72, 213, 151, 0.4);
             border-radius: 999px;
             background: rgba(72, 213, 151, 0.08);
             color: var(--accent);
-            font-weight: 700;
+            font-weight: 800;
             white-space: nowrap;
         }
 
@@ -135,7 +139,7 @@ Reason: Weak attackers were still dealing too much damage. New model allows miti
             font-size: 14px;
         }
 
-        input, select {
+        input {
             width: 100%;
             padding: 9px 10px;
             background: var(--input);
@@ -146,7 +150,7 @@ Reason: Weak attackers were still dealing too much damage. New model allows miti
             transition: border-color 0.15s, box-shadow 0.15s;
         }
 
-        input:focus, select:focus {
+        input:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(72, 213, 151, 0.14);
         }
@@ -223,6 +227,13 @@ Reason: Weak attackers were still dealing too much damage. New model allows miti
             margin-bottom: 20px;
         }
 
+        .shared-note {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: -4px;
+            margin-bottom: 12px;
+        }
+
         @media (max-width: 1200px) {
             body {
                 padding: 18px;
@@ -255,258 +266,273 @@ Reason: Weak attackers were still dealing too much damage. New model allows miti
     <div>
         <h1>Raven2 Damage Calculator</h1>
         <p>
-Current theory model: Attack is always fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
-Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100).
-</p>
+            v0.1.3 theory model: Attack is fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
+            Hidden DR is estimated as (DEF + PVP Defense) × 0.75 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100).
+            PvP and Bash are flat damage added after Final Damage Amp, but before Skill/Basic Reduction and Final Damage Resistance.
+        </p>
     </div>
-    <div class="badge">DR-before-scaling model</div>
+    <div class="badge">v0.1.3</div>
 </section>
 
 <div class="calculators">
 
     <div class="card">
-        <h2>Skill Damage Calculator</h2><div class="calc-layout"><div>
+        <h2>Skill Damage Calculator</h2>
 
-        <h3>Attacker</h3>
+        <div class="calc-layout">
+            <div>
+                <h3>Attacker</h3>
+                <p class="shared-note">Shared fields sync with the Basic Attack calculator.</p>
 
-        <div class="row">
-            <label>Attack</label>
-            <input id="skill_attack" value="600">
+                <div class="row">
+                    <label>Attack</label>
+                    <input id="skill_attack" data-sync="attack" value="587">
+                </div>
+
+                <div class="row">
+                    <label>Weapon Attack</label>
+                    <input id="skill_weaponAttack" data-sync="weaponAttack" value="200">
+                </div>
+
+                <div class="row">
+                    <label>Skill %</label>
+                    <input id="skill_percent" value="490">
+                </div>
+
+                <div class="row">
+                    <label>Skill Amp %</label>
+                    <input id="skill_amp" value="35">
+                </div>
+
+                <div class="row">
+                    <label>Final Damage Amp %</label>
+                    <input id="skill_fda" data-sync="fda" value="31.5">
+                </div>
+
+                <div class="row">
+                    <label>Damage Amp on Hit %</label>
+                    <input id="skill_dmgAmpOnHit" data-sync="dmgAmpOnHit" value="13">
+                </div>
+
+                <div class="row">
+                    <label>Ignore Damage Reduction</label>
+                    <input id="skill_ignoreDr" data-sync="ignoreDr" value="103">
+                </div>
+
+                <div class="row">
+                    <label>PVP Damage</label>
+                    <input id="skill_pvpDamage" data-sync="pvpDamage" value="139">
+                </div>
+
+                <div class="row">
+                    <label>Bash Damage</label>
+                    <input id="skill_bashDamage" data-sync="bashDamage" value="135">
+                </div>
+
+                <div class="row">
+                    <label>Bash?</label>
+                    <input id="skill_isBash" data-sync="isBash" class="checkbox-input" type="checkbox">
+                </div>
+
+                <div class="row">
+                    <label>Double Bash?</label>
+                    <input id="skill_isDoubleBash" data-sync="isDoubleBash" class="checkbox-input" type="checkbox">
+                </div>
+
+                <div class="row">
+                    <label>Critical Hit?</label>
+                    <input id="skill_isCrit" data-sync="isCrit" class="checkbox-input" type="checkbox">
+                </div>
+
+                <div class="row">
+                    <label>Base Crit Multiplier</label>
+                    <input id="skill_baseCrit" data-sync="baseCrit" value="1.5">
+                </div>
+
+                <div class="row">
+                    <label>Crit Damage Amp %</label>
+                    <input id="skill_critDmgAmp" data-sync="critDmgAmp" value="0">
+                </div>
+
+                <h3>Defender</h3>
+
+                <div class="row">
+                    <label>Weapon Attack Resistance</label>
+                    <input id="skill_weaponRes" data-sync="weaponRes" value="5">
+                </div>
+
+                <div class="row">
+                    <label>DEF</label>
+                    <input id="skill_def" data-sync="def" value="353">
+                </div>
+
+                <div class="row">
+                    <label>PVP Defense</label>
+                    <input id="skill_pvpDef" data-sync="pvpDef" value="2">
+                </div>
+
+                <div class="row">
+                    <label>Dmg Res When Hit %</label>
+                    <input id="skill_dmgResWhenHit" data-sync="dmgResWhenHit" value="3">
+                </div>
+
+                <div class="row">
+                    <label>DR Stat</label>
+                    <input id="skill_dr" data-sync="dr" value="72">
+                </div>
+
+                <div class="row">
+                    <label>Skill Damage Reduction</label>
+                    <input id="skill_reduction" value="26.5">
+                </div>
+
+                <div class="row">
+                    <label>Crit Damage Reduction %</label>
+                    <input id="skill_critDmgReduction" data-sync="critDmgReduction" value="13">
+                </div>
+
+                <div class="row">
+                    <label>Final Damage Resistance</label>
+                    <input id="skill_fdr" data-sync="fdr" value="11">
+                </div>
+
+                <button onclick="calculateSkill()">Calculate Skill Damage</button>
+                <div id="skill_final_quick" class="quick-final">FINAL SKILL DAMAGE: --</div>
+            </div>
+
+            <div>
+                <div id="skill_result" class="result"></div>
+            </div>
         </div>
-
-        <div class="row">
-            <label>Weapon Attack</label>
-            <input id="skill_weaponAttack" value="190">
-        </div>
-
-        <div class="row">
-            <label>Skill %</label>
-            <input id="skill_percent" value="350">
-        </div>
-
-        <div class="row">
-            <label>Skill Amp %</label>
-            <input id="skill_amp" value="50">
-        </div>
-
-        <div class="row">
-            <label>Final Damage Amp %</label>
-            <input id="skill_fda" value="35">
-        </div>
-
-        <div class="row">
-            <label>Damage Amp on Hit %</label>
-            <input id="skill_dmgAmpOnHit" value="0">
-        </div>
-
-        <div class="row">
-            <label>Ignore Damage Reduction</label>
-            <input id="skill_ignoreDr" value="0">
-        </div>
-
-        <div class="row">
-            <label>PVP Damage</label>
-            <input id="skill_pvpDamage" value="0">
-        </div>
-
-        <div class="row">
-            <label>Bash Damage</label>
-            <input id="skill_bashDamage" value="0">
-        </div>
-
-        <div class="row">
-            <label>Bash?</label>
-            <input id="skill_isBash" class="checkbox-input" type="checkbox">
-        </div>
-
-        <div class="row">
-            <label>Double Bash?</label>
-            <input id="skill_isDoubleBash" class="checkbox-input" type="checkbox">
-        </div>
-
-        <div class="row">
-            <label>Critical Hit?</label>
-            <input id="skill_isCrit" class="checkbox-input" type="checkbox">
-        </div>
-
-        <div class="row">
-            <label>Base Crit Multiplier</label>
-            <input id="skill_baseCrit" value="1.5">
-        </div>
-
-        <div class="row">
-            <label>Crit Damage Amp %</label>
-            <input id="skill_critDmgAmp" value="0">
-        </div>
-
-        <h3>Defender</h3>
-
-        <div class="row">
-            <label>Weapon Attack Resistance</label>
-            <input id="skill_weaponRes" value="50">
-        </div>
-
-        <div class="row">
-            <label>DEF</label>
-            <input id="skill_def" value="615">
-        </div>
-
-        <div class="row">
-            <label>PVP Defense</label>
-            <input id="skill_pvpDef" value="0">
-        </div>
-
-        <div class="row">
-            <label>Dmg Res When Hit %</label>
-            <input id="skill_dmgResWhenHit" value="0">
-        </div>
-
-        <div class="row">
-            <label>DR Stat</label>
-            <input id="skill_dr" value="190">
-        </div>
-
-        <div class="row">
-            <label>Skill Damage Reduction</label>
-            <input id="skill_reduction" value="70">
-        </div>
-
-        <div class="row">
-            <label>Crit Damage Reduction %</label>
-            <input id="skill_critDmgReduction" value="0">
-        </div>
-
-        <div class="row">
-            <label>Final Damage Resistance</label>
-            <input id="skill_fdr" value="83">
-        </div>
-
-        <button onclick="calculateSkill()">Calculate Skill Damage</button>
-
-        <div id="skill_final_quick" class="quick-final">FINAL SKILL DAMAGE: --</div>
-
-        </div><div><div id="skill_result" class="result"></div></div></div>
     </div>
 
 
     <div class="card">
-        <h2>Basic Attack Calculator</h2><div class="calc-layout"><div>
+        <h2>Basic Attack Calculator</h2>
 
-        <h3>Attacker</h3>
+        <div class="calc-layout">
+            <div>
+                <h3>Attacker</h3>
+                <p class="shared-note">Shared fields sync with the Skill Damage calculator.</p>
 
-        <div class="row">
-            <label>Attack</label>
-            <input id="basic_attack" value="600">
+                <div class="row">
+                    <label>Attack</label>
+                    <input id="basic_attack" data-sync="attack" value="587">
+                </div>
+
+                <div class="row">
+                    <label>Weapon Attack</label>
+                    <input id="basic_weaponAttack" data-sync="weaponAttack" value="200">
+                </div>
+
+                <div class="row">
+                    <label>Basic Attack Amp %</label>
+                    <input id="basic_amp" value="42.5">
+                </div>
+
+                <div class="row">
+                    <label>Final Damage Amp %</label>
+                    <input id="basic_fda" data-sync="fda" value="31.5">
+                </div>
+
+                <div class="row">
+                    <label>Damage Amp on Hit %</label>
+                    <input id="basic_dmgAmpOnHit" data-sync="dmgAmpOnHit" value="13">
+                </div>
+
+                <div class="row">
+                    <label>Ignore Damage Reduction</label>
+                    <input id="basic_ignoreDr" data-sync="ignoreDr" value="103">
+                </div>
+
+                <div class="row">
+                    <label>PVP Damage</label>
+                    <input id="basic_pvpDamage" data-sync="pvpDamage" value="139">
+                </div>
+
+                <div class="row">
+                    <label>Bash Damage</label>
+                    <input id="basic_bashDamage" data-sync="bashDamage" value="135">
+                </div>
+
+                <div class="row">
+                    <label>Bash?</label>
+                    <input id="basic_isBash" data-sync="isBash" class="checkbox-input" type="checkbox">
+                </div>
+
+                <div class="row">
+                    <label>Double Bash?</label>
+                    <input id="basic_isDoubleBash" data-sync="isDoubleBash" class="checkbox-input" type="checkbox">
+                </div>
+
+                <div class="row">
+                    <label>Critical Hit?</label>
+                    <input id="basic_isCrit" data-sync="isCrit" class="checkbox-input" type="checkbox">
+                </div>
+
+                <div class="row">
+                    <label>Base Crit Multiplier</label>
+                    <input id="basic_baseCrit" data-sync="baseCrit" value="1.5">
+                </div>
+
+                <div class="row">
+                    <label>Crit Damage Amp %</label>
+                    <input id="basic_critDmgAmp" data-sync="critDmgAmp" value="0">
+                </div>
+
+                <h3>Defender</h3>
+
+                <div class="row">
+                    <label>Weapon Attack Resistance</label>
+                    <input id="basic_weaponRes" data-sync="weaponRes" value="5">
+                </div>
+
+                <div class="row">
+                    <label>DEF</label>
+                    <input id="basic_def" data-sync="def" value="353">
+                </div>
+
+                <div class="row">
+                    <label>PVP Defense</label>
+                    <input id="basic_pvpDef" data-sync="pvpDef" value="2">
+                </div>
+
+                <div class="row">
+                    <label>Dmg Res When Hit %</label>
+                    <input id="basic_dmgResWhenHit" data-sync="dmgResWhenHit" value="3">
+                </div>
+
+                <div class="row">
+                    <label>DR Stat</label>
+                    <input id="basic_dr" data-sync="dr" value="72">
+                </div>
+
+                <div class="row">
+                    <label>Basic Attack Reduction</label>
+                    <input id="basic_reduction" value="12.5">
+                </div>
+
+                <div class="row">
+                    <label>Crit Damage Reduction %</label>
+                    <input id="basic_critDmgReduction" data-sync="critDmgReduction" value="13">
+                </div>
+
+                <div class="row">
+                    <label>Final Damage Resistance</label>
+                    <input id="basic_fdr" data-sync="fdr" value="11">
+                </div>
+
+                <button onclick="calculateBasic()">Calculate Basic Attack Damage</button>
+                <div id="basic_final_quick" class="quick-final">FINAL BASIC DAMAGE: --</div>
+            </div>
+
+            <div>
+                <div id="basic_result" class="result"></div>
+            </div>
         </div>
-
-        <div class="row">
-            <label>Weapon Attack</label>
-            <input id="basic_weaponAttack" value="190">
-        </div>
-
-        <div class="row">
-            <label>Basic Attack Amp %</label>
-            <input id="basic_amp" value="40">
-        </div>
-
-        <div class="row">
-            <label>Final Damage Amp %</label>
-            <input id="basic_fda" value="35">
-        </div>
-
-        <div class="row">
-            <label>Damage Amp on Hit %</label>
-            <input id="basic_dmgAmpOnHit" value="0">
-        </div>
-
-        <div class="row">
-            <label>Ignore Damage Reduction</label>
-            <input id="basic_ignoreDr" value="0">
-        </div>
-
-        <div class="row">
-            <label>PVP Damage</label>
-            <input id="basic_pvpDamage" value="0">
-        </div>
-
-        <div class="row">
-            <label>Bash Damage</label>
-            <input id="basic_bashDamage" value="0">
-        </div>
-
-        <div class="row">
-            <label>Bash?</label>
-            <input id="basic_isBash" class="checkbox-input" type="checkbox">
-        </div>
-
-        <div class="row">
-            <label>Double Bash?</label>
-            <input id="basic_isDoubleBash" class="checkbox-input" type="checkbox">
-        </div>
-
-        <div class="row">
-            <label>Critical Hit?</label>
-            <input id="basic_isCrit" class="checkbox-input" type="checkbox">
-        </div>
-
-        <div class="row">
-            <label>Base Crit Multiplier</label>
-            <input id="basic_baseCrit" value="1.5">
-        </div>
-
-        <div class="row">
-            <label>Crit Damage Amp %</label>
-            <input id="basic_critDmgAmp" value="0">
-        </div>
-
-        <h3>Defender</h3>
-
-        <div class="row">
-            <label>Weapon Attack Resistance</label>
-            <input id="basic_weaponRes" value="50">
-        </div>
-
-        <div class="row">
-            <label>DEF</label>
-            <input id="basic_def" value="615">
-        </div>
-
-        <div class="row">
-            <label>PVP Defense</label>
-            <input id="basic_pvpDef" value="0">
-        </div>
-
-        <div class="row">
-            <label>Dmg Res When Hit %</label>
-            <input id="basic_dmgResWhenHit" value="0">
-        </div>
-
-        <div class="row">
-            <label>DR Stat</label>
-            <input id="basic_dr" value="190">
-        </div>
-
-        <div class="row">
-            <label>Basic Attack Reduction</label>
-            <input id="basic_reduction" value="70">
-        </div>
-
-        <div class="row">
-            <label>Crit Damage Reduction %</label>
-            <input id="basic_critDmgReduction" value="0">
-        </div>
-
-        <div class="row">
-            <label>Final Damage Resistance</label>
-            <input id="basic_fdr" value="83">
-        </div>
-
-        <button onclick="calculateBasic()">Calculate Basic Attack Damage</button>
-
-        <div id="basic_final_quick" class="quick-final">FINAL BASIC DAMAGE: --</div>
-
-        </div><div><div id="basic_result" class="result"></div></div></div>
     </div>
+
+</div>
 
 </div>
 
@@ -526,7 +552,6 @@ function checked(id) {
 function fmt(value) {
     return Number(value).toFixed(2);
 }
-
 
 function minimumDamage(value) {
     return Math.max(1, value);
@@ -555,6 +580,37 @@ function applyCrit(baseDamage, isCrit, baseCrit, critDmgAmp, critDmgReduction) {
     };
 }
 
+function getEffectiveBashDamage(prefix) {
+    const bashDamage = num(prefix + "_bashDamage");
+    const isBash = checked(prefix + "_isBash");
+    const isDoubleBash = checked(prefix + "_isDoubleBash");
+
+    if (isDoubleBash) {
+        return {
+            bashDamage,
+            isBash,
+            isDoubleBash,
+            effectiveBashDamage: bashDamage * 2
+        };
+    }
+
+    if (isBash) {
+        return {
+            bashDamage,
+            isBash,
+            isDoubleBash,
+            effectiveBashDamage: bashDamage
+        };
+    }
+
+    return {
+        bashDamage,
+        isBash,
+        isDoubleBash,
+        effectiveBashDamage: 0
+    };
+}
+
 function writeQuickResult(id, label, value) {
     const element = document.getElementById(id);
     if (element) {
@@ -572,18 +628,8 @@ function calculateSkill() {
     const dmgAmpOnHit = num("skill_dmgAmpOnHit");
     const ignoreDr = num("skill_ignoreDr");
     const pvpDamage = num("skill_pvpDamage");
-    const bashDamage = num("skill_bashDamage");
-    const isBash = checked("skill_isBash");
-    const isDoubleBash = checked("skill_isDoubleBash");
-
-    let effectiveBashDamage = 0;
-    if (isDoubleBash) {
-        effectiveBashDamage = bashDamage * 2;
-    } else if (isBash) {
-        effectiveBashDamage = bashDamage;
-    }
-
-    const flatBonusDamage = pvpDamage + effectiveBashDamage;
+    const bash = getEffectiveBashDamage("skill");
+    const flatBonusDamage = pvpDamage + bash.effectiveBashDamage;
     const isCrit = checked("skill_isCrit");
     const baseCrit = num("skill_baseCrit");
     const critDmgAmp = num("skill_critDmgAmp");
@@ -593,7 +639,7 @@ function calculateSkill() {
     const dmgResWhenHit = num("skill_dmgResWhenHit");
     const totalDefense = def + pvpDef;
     const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
-    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
+    const defenseToDrRatio = 0.75 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
     const hiddenDr = totalDefense * defenseToDrRatio;
 
     const dr = num("skill_dr");
@@ -605,7 +651,6 @@ function calculateSkill() {
     const weaponResDivisor = 1 + weaponRes / 100;
     const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
     const totalAttack = attack + effectiveWeaponAttack;
-    const preMitigationAttackPacket = totalAttack + flatBonusDamage;
 
     const skillMultiplier = skillPercent / 100;
     const skillAmpMultiplier = 1 + skillAmp / 100;
@@ -613,7 +658,19 @@ function calculateSkill() {
     const skillReductionDivisor = 1 + skillReduction / 100;
     const fdrDivisor = 1 + fdr / 100;
 
-    let log = `========== SKILL CALCULATION ==========
+    const afterHiddenDr = totalAttack - hiddenDr;
+    const afterDr = afterHiddenDr - effectiveDr;
+    const afterMinimumBeforeScaling = minimumDamage(afterDr);
+    const afterSkillPercent = afterMinimumBeforeScaling * skillMultiplier;
+    const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
+    const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
+    const afterFda = crit.result * fdaMultiplier;
+    const afterFlatBonus = afterFda + flatBonusDamage;
+    const afterSkillReduction = afterFlatBonus / skillReductionDivisor;
+    const afterFdr = afterSkillReduction / fdrDivisor;
+    const finalDamage = minimumDamage(afterFdr);
+
+    const log = `========== SKILL CALCULATION ==========
 
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
@@ -621,10 +678,10 @@ Weapon Attack Resistance: ${fmt(weaponRes)}%
 Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
 Ignore Damage Reduction: ${fmt(ignoreDr)}
 PVP Damage: ${fmt(pvpDamage)}
-Bash Damage Stat: ${fmt(bashDamage)}
-Bash: ${isBash ? "YES" : "NO"}
-Double Bash: ${isDoubleBash ? "YES" : "NO"}
-Effective Bash Damage: ${fmt(effectiveBashDamage)}
+Bash Damage Stat: ${fmt(bash.bashDamage)}
+Bash: ${bash.isBash ? "YES" : "NO"}
+Double Bash: ${bash.isDoubleBash ? "YES" : "NO"}
+Effective Bash Damage: ${fmt(bash.effectiveBashDamage)}
 Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
 Critical Hit: ${isCrit ? "YES" : "NO"}
 Base Crit Multiplier: ${fmt(baseCrit)}
@@ -637,7 +694,7 @@ Total Defense: ${fmt(totalDefense)}
 Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
 
 Hidden DR from Defense:
-(${fmt(def)} + ${fmt(pvpDef)}) × 0.35 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
+(${fmt(def)} + ${fmt(pvpDef)}) × 0.75 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
 
 Effective Weapon Attack:
 ${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
@@ -645,31 +702,11 @@ ${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
 Total Attack:
 ${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
 
-Attack Packet Before Mitigation:
-${fmt(totalAttack)} + ${fmt(flatBonusDamage)} = ${fmt(preMitigationAttackPacket)}
-
 Effective DR Stat:
 max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
 
-`;
-
-    let finalDamage;
-
-    if (true) {
-        const afterHiddenDr = preMitigationAttackPacket - hiddenDr;
-        const afterDr = afterHiddenDr - effectiveDr;
-        const afterMinimumBeforeScaling = minimumDamage(afterDr);
-
-        const afterSkillPercent = afterMinimumBeforeScaling * skillMultiplier;
-        const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
-        const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
-        const afterFda = crit.result * fdaMultiplier;
-        const afterSkillReduction = afterFda / skillReductionDivisor;
-        const afterFdr = afterSkillReduction / fdrDivisor;
-        finalDamage = minimumDamage(afterFdr);
-
-        log += `After Hidden DR:
-${fmt(preMitigationAttackPacket)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+After Hidden DR:
+${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
 After Effective DR Stat:
 ${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
@@ -692,58 +729,11 @@ After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.r
 After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
-After Skill Damage Reduction:
-${fmt(afterFda)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
-
-After Final Damage Resistance:
-${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
-
-Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
-
-<span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
-    } else {
-        const afterSkillPercent = totalAttack * skillMultiplier;
-        const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
-        const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
-        const afterFda = crit.result * fdaMultiplier;
-        const afterFlatBonus = afterFda + flatBonusDamage;
-        const afterHiddenDr = afterFlatBonus - hiddenDr;
-        const afterDr = afterHiddenDr - effectiveDr;
-        const afterMinimumBeforeReduction = minimumDamage(afterDr);
-        const afterSkillReduction = afterMinimumBeforeReduction / skillReductionDivisor;
-        const afterFdr = afterSkillReduction / fdrDivisor;
-        finalDamage = minimumDamage(afterFdr);
-
-        log += `After Skill %:
-${fmt(totalAttack)} × ${fmt(skillMultiplier)} = ${fmt(afterSkillPercent)}
-
-After Skill Amp:
-${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} = ${fmt(afterSkillAmp)}
-
-Critical Hit Layer:
-Base damage: ${fmt(afterSkillAmp)}
-Raw crit extra: ${fmt(afterSkillAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
-Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
-After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
-
-After Final Damage Amp:
-${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
-
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(effectiveBashDamage)} = ${fmt(afterFlatBonus)}
-
-After Hidden DR:
-${fmt(afterFlatBonus)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
-
-After Effective DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
-
-Minimum Damage Floor Before Reduction:
-max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeReduction)}
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bash.effectiveBashDamage)} = ${fmt(afterFlatBonus)}
 
 After Skill Damage Reduction:
-${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
+${fmt(afterFlatBonus)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
 
 After Final Damage Resistance:
 ${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
@@ -752,7 +742,6 @@ Final Minimum Damage Floor:
 max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
 
 <span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
-    }
 
     document.getElementById("skill_result").innerHTML = log;
     writeQuickResult("skill_final_quick", "FINAL SKILL DAMAGE", finalDamage);
@@ -767,18 +756,8 @@ function calculateBasic() {
     const dmgAmpOnHit = num("basic_dmgAmpOnHit");
     const ignoreDr = num("basic_ignoreDr");
     const pvpDamage = num("basic_pvpDamage");
-    const bashDamage = num("basic_bashDamage");
-    const isBash = checked("basic_isBash");
-    const isDoubleBash = checked("basic_isDoubleBash");
-
-    let effectiveBashDamage = 0;
-    if (isDoubleBash) {
-        effectiveBashDamage = bashDamage * 2;
-    } else if (isBash) {
-        effectiveBashDamage = bashDamage;
-    }
-
-    const flatBonusDamage = pvpDamage + effectiveBashDamage;
+    const bash = getEffectiveBashDamage("basic");
+    const flatBonusDamage = pvpDamage + bash.effectiveBashDamage;
     const isCrit = checked("basic_isCrit");
     const baseCrit = num("basic_baseCrit");
     const critDmgAmp = num("basic_critDmgAmp");
@@ -788,7 +767,7 @@ function calculateBasic() {
     const dmgResWhenHit = num("basic_dmgResWhenHit");
     const totalDefense = def + pvpDef;
     const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
-    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
+    const defenseToDrRatio = 0.75 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
     const hiddenDr = totalDefense * defenseToDrRatio;
 
     const dr = num("basic_dr");
@@ -800,14 +779,24 @@ function calculateBasic() {
     const weaponResDivisor = 1 + weaponRes / 100;
     const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
     const totalAttack = attack + effectiveWeaponAttack;
-    const preMitigationAttackPacket = totalAttack + flatBonusDamage;
 
     const basicAmpMultiplier = 1 + basicAmp / 100;
     const fdaMultiplier = 1 + fda / 100;
     const basicReductionDivisor = 1 + basicReduction / 100;
     const fdrDivisor = 1 + fdr / 100;
 
-    let log = `========== BASIC ATTACK CALCULATION ==========
+    const afterHiddenDr = totalAttack - hiddenDr;
+    const afterDr = afterHiddenDr - effectiveDr;
+    const afterMinimumBeforeScaling = minimumDamage(afterDr);
+    const afterBasicAmp = afterMinimumBeforeScaling * basicAmpMultiplier;
+    const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
+    const afterFda = crit.result * fdaMultiplier;
+    const afterFlatBonus = afterFda + flatBonusDamage;
+    const afterBasicReduction = afterFlatBonus / basicReductionDivisor;
+    const afterFdr = afterBasicReduction / fdrDivisor;
+    const finalDamage = minimumDamage(afterFdr);
+
+    const log = `========== BASIC ATTACK CALCULATION ==========
 
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
@@ -815,10 +804,10 @@ Weapon Attack Resistance: ${fmt(weaponRes)}%
 Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
 Ignore Damage Reduction: ${fmt(ignoreDr)}
 PVP Damage: ${fmt(pvpDamage)}
-Bash Damage Stat: ${fmt(bashDamage)}
-Bash: ${isBash ? "YES" : "NO"}
-Double Bash: ${isDoubleBash ? "YES" : "NO"}
-Effective Bash Damage: ${fmt(effectiveBashDamage)}
+Bash Damage Stat: ${fmt(bash.bashDamage)}
+Bash: ${bash.isBash ? "YES" : "NO"}
+Double Bash: ${bash.isDoubleBash ? "YES" : "NO"}
+Effective Bash Damage: ${fmt(bash.effectiveBashDamage)}
 Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
 Critical Hit: ${isCrit ? "YES" : "NO"}
 Base Crit Multiplier: ${fmt(baseCrit)}
@@ -831,7 +820,7 @@ Total Defense: ${fmt(totalDefense)}
 Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
 
 Hidden DR from Defense:
-(${fmt(def)} + ${fmt(pvpDef)}) × 0.35 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
+(${fmt(def)} + ${fmt(pvpDef)}) × 0.75 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
 
 Effective Weapon Attack:
 ${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
@@ -839,30 +828,11 @@ ${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
 Total Attack:
 ${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
 
-Attack Packet Before Mitigation:
-${fmt(totalAttack)} + ${fmt(flatBonusDamage)} = ${fmt(preMitigationAttackPacket)}
-
 Effective DR Stat:
 max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
 
-`;
-
-    let finalDamage;
-
-    if (true) {
-        const afterHiddenDr = preMitigationAttackPacket - hiddenDr;
-        const afterDr = afterHiddenDr - effectiveDr;
-        const afterMinimumBeforeScaling = minimumDamage(afterDr);
-
-        const afterBasicAmp = afterMinimumBeforeScaling * basicAmpMultiplier;
-        const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
-        const afterFda = crit.result * fdaMultiplier;
-        const afterBasicReduction = afterFda / basicReductionDivisor;
-        const afterFdr = afterBasicReduction / fdrDivisor;
-        finalDamage = minimumDamage(afterFdr);
-
-        log += `After Hidden DR:
-${fmt(preMitigationAttackPacket)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+After Hidden DR:
+${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
 After Effective DR Stat:
 ${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
@@ -882,54 +852,11 @@ After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.r
 After Final Damage Amp:
 ${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
-After Basic Attack Reduction:
-${fmt(afterFda)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
-
-After Final Damage Resistance:
-${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
-
-Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
-
-<span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
-    } else {
-        const afterBasicAmp = totalAttack * basicAmpMultiplier;
-        const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
-        const afterFda = crit.result * fdaMultiplier;
-        const afterFlatBonus = afterFda + flatBonusDamage;
-        const afterHiddenDr = afterFlatBonus - hiddenDr;
-        const afterDr = afterHiddenDr - effectiveDr;
-        const afterMinimumBeforeReduction = minimumDamage(afterDr);
-        const afterBasicReduction = afterMinimumBeforeReduction / basicReductionDivisor;
-        const afterFdr = afterBasicReduction / fdrDivisor;
-        finalDamage = minimumDamage(afterFdr);
-
-        log += `After Basic Attack Amp:
-${fmt(totalAttack)} × ${fmt(basicAmpMultiplier)} = ${fmt(afterBasicAmp)}
-
-Critical Hit Layer:
-Base damage: ${fmt(afterBasicAmp)}
-Raw crit extra: ${fmt(afterBasicAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
-Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
-After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
-
-After Final Damage Amp:
-${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
-
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(effectiveBashDamage)} = ${fmt(afterFlatBonus)}
-
-After Hidden DR:
-${fmt(afterFlatBonus)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
-
-After Effective DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
-
-Minimum Damage Floor Before Reduction:
-max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeReduction)}
+${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bash.effectiveBashDamage)} = ${fmt(afterFlatBonus)}
 
 After Basic Attack Reduction:
-${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
+${fmt(afterFlatBonus)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
 
 After Final Damage Resistance:
 ${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
@@ -938,20 +865,44 @@ Final Minimum Damage Floor:
 max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
 
 <span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
-    }
 
     document.getElementById("basic_result").innerHTML = log;
     writeQuickResult("basic_final_quick", "FINAL BASIC DAMAGE", finalDamage);
 }
 
+let isSyncing = false;
+
+function syncSharedField(source) {
+    if (isSyncing) return;
+
+    const key = source.dataset.sync;
+    if (!key) return;
+
+    isSyncing = true;
+
+    document.querySelectorAll(`[data-sync="${key}"]`).forEach(function(target) {
+        if (target === source) return;
+
+        if (source.type === "checkbox") {
+            target.checked = source.checked;
+        } else {
+            target.value = source.value;
+        }
+    });
+
+    isSyncing = false;
+}
+
 function setupLiveUpdates() {
-    document.querySelectorAll("input, select").forEach(function(element) {
+    document.querySelectorAll("input").forEach(function(element) {
         element.addEventListener("input", function() {
+            syncSharedField(element);
             calculateSkill();
             calculateBasic();
         });
 
         element.addEventListener("change", function() {
+            syncSharedField(element);
             calculateSkill();
             calculateBasic();
         });
@@ -963,6 +914,5 @@ calculateSkill();
 calculateBasic();
 </script>
 
-</div>
 </body>
 </html>
