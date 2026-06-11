@@ -1,5 +1,5 @@
-<!-- Raven2Calculator_v0.1.1
-Changed: Moved PvP Damage and Bash Damage before Hidden DR and DR.
+<!-- Raven2Calculator_v0.1.2
+Changed: Fixed live calculation after moving PvP/Bash before Hidden DR and DR.
 Reason: Weak attackers were still dealing too much damage. New model allows mitigation to reduce bash hits to 1.
 -->
 <!DOCTYPE html>
@@ -584,7 +584,6 @@ function calculateSkill() {
     }
 
     const flatBonusDamage = pvpDamage + effectiveBashDamage;
-    const preMitigationAttackPacket = totalAttack + flatBonusDamage;
     const isCrit = checked("skill_isCrit");
     const baseCrit = num("skill_baseCrit");
     const critDmgAmp = num("skill_critDmgAmp");
@@ -606,6 +605,7 @@ function calculateSkill() {
     const weaponResDivisor = 1 + weaponRes / 100;
     const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
     const totalAttack = attack + effectiveWeaponAttack;
+    const preMitigationAttackPacket = totalAttack + flatBonusDamage;
 
     const skillMultiplier = skillPercent / 100;
     const skillAmpMultiplier = 1 + skillAmp / 100;
@@ -669,7 +669,7 @@ max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
         finalDamage = minimumDamage(afterFdr);
 
         log += `After Hidden DR:
-${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+${fmt(preMitigationAttackPacket)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
 After Effective DR Stat:
 ${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
@@ -779,7 +779,6 @@ function calculateBasic() {
     }
 
     const flatBonusDamage = pvpDamage + effectiveBashDamage;
-    const preMitigationAttackPacket = totalAttack + flatBonusDamage;
     const isCrit = checked("basic_isCrit");
     const baseCrit = num("basic_baseCrit");
     const critDmgAmp = num("basic_critDmgAmp");
@@ -801,6 +800,7 @@ function calculateBasic() {
     const weaponResDivisor = 1 + weaponRes / 100;
     const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
     const totalAttack = attack + effectiveWeaponAttack;
+    const preMitigationAttackPacket = totalAttack + flatBonusDamage;
 
     const basicAmpMultiplier = 1 + basicAmp / 100;
     const fdaMultiplier = 1 + fda / 100;
@@ -862,7 +862,7 @@ max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
         finalDamage = minimumDamage(afterFdr);
 
         log += `After Hidden DR:
-${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+${fmt(preMitigationAttackPacket)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
 After Effective DR Stat:
 ${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
