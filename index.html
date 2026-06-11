@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Raven2 Damage Calculator</title>
+    <style>
+        body {
+            background: #1e1e1e;
+            color: #f2f2f2;
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
+        h2 {
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+        }
+
+        .calculators {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: #262626;
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 18px;
+        }
+
+        .row {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: inline-block;
+            width: 230px;
+        }
+
+        input {
+            width: 120px;
+            padding: 6px;
+            background: #111;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 16px;
+            margin-top: 12px;
+            cursor: pointer;
+            border: 0;
+            border-radius: 6px;
+            background: #00aa66;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #00cc77;
+        }
+
+        .result {
+            margin-top: 18px;
+            padding: 12px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            font-family: Consolas, monospace;
+            white-space: pre-wrap;
+            line-height: 1.45;
+        }
+
+        .final {
+            color: #00ff88;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .note {
+            color: #bbb;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .calculators {
+                grid-template-columns: 1fr;
+            }
+
+            label {
+                width: 210px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Raven2 Damage Calculator</h1>
+
+<p class="note">
+Current theory model: Attack is always fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
+Hidden DR is automatically estimated as DEF × 0.5.
+</p>
+
+<div class="calculators">
+
+    <div class="card">
+        <h2>Skill Damage Calculator</h2>
+
+        <h3>Attacker</h3>
+
+        <div class="row">
+            <label>Attack</label>
+            <input id="skill_attack" value="900">
+        </div>
+
+        <div class="row">
+            <label>Weapon Attack</label>
+            <input id="skill_weaponAttack" value="500">
+        </div>
+
+        <div class="row">
+            <label>Skill %</label>
+            <input id="skill_percent" value="350">
+        </div>
+
+        <div class="row">
+            <label>Skill Amp %</label>
+            <input id="skill_amp" value="50">
+        </div>
+
+        <div class="row">
+            <label>Final Damage Amp %</label>
+            <input id="skill_fda" value="35">
+        </div>
+
+        <h3>Defender</h3>
+
+        <div class="row">
+            <label>Weapon Attack Resistance</label>
+            <input id="skill_weaponRes" value="50">
+        </div>
+
+        <div class="row">
+            <label>DEF</label>
+            <input id="skill_def" value="615">
+        </div>
+
+        <div class="row">
+            <label>DR Stat</label>
+            <input id="skill_dr" value="190">
+        </div>
+
+        <div class="row">
+            <label>Skill Damage Reduction</label>
+            <input id="skill_reduction" value="75">
+        </div>
+
+        <div class="row">
+            <label>Final Damage Resistance</label>
+            <input id="skill_fdr" value="83">
+        </div>
+
+        <button onclick="calculateSkill()">Calculate Skill Damage</button>
+
+        <div id="skill_result" class="result"></div>
+    </div>
+
+
+    <div class="card">
+        <h2>Basic Attack Calculator</h2>
+
+        <h3>Attacker</h3>
+
+        <div class="row">
+            <label>Attack</label>
+            <input id="basic_attack" value="900">
+        </div>
+
+        <div class="row">
+            <label>Weapon Attack</label>
+            <input id="basic_weaponAttack" value="500">
+        </div>
+
+        <div class="row">
+            <label>Basic Attack Amp %</label>
+            <input id="basic_amp" value="0">
+        </div>
+
+        <div class="row">
+            <label>Final Damage Amp %</label>
+            <input id="basic_fda" value="35">
+        </div>
+
+        <h3>Defender</h3>
+
+        <div class="row">
+            <label>Weapon Attack Resistance</label>
+            <input id="basic_weaponRes" value="50">
+        </div>
+
+        <div class="row">
+            <label>DEF</label>
+            <input id="basic_def" value="615">
+        </div>
+
+        <div class="row">
+            <label>DR Stat</label>
+            <input id="basic_dr" value="190">
+        </div>
+
+        <div class="row">
+            <label>Basic Attack Reduction</label>
+            <input id="basic_reduction" value="75">
+        </div>
+
+        <div class="row">
+            <label>Final Damage Resistance</label>
+            <input id="basic_fdr" value="83">
+        </div>
+
+        <button onclick="calculateBasic()">Calculate Basic Attack Damage</button>
+
+        <div id="basic_result" class="result"></div>
+    </div>
+
+</div>
+
+<script>
+function num(id) {
+    const value = parseFloat(document.getElementById(id).value);
+    return isNaN(value) ? 0 : value;
+}
+
+function fmt(value) {
+    return Number(value).toFixed(2);
+}
+
+function calculateSkill() {
+    const attack = num("skill_attack");
+    const weaponAttack = num("skill_weaponAttack");
+    const weaponRes = num("skill_weaponRes");
+    const skillPercent = num("skill_percent");
+    const skillAmp = num("skill_amp");
+    const fda = num("skill_fda");
+    const def = num("skill_def");
+    const hiddenDr = def * 0.5;
+    const dr = num("skill_dr");
+    const skillReduction = num("skill_reduction");
+    const fdr = num("skill_fdr");
+
+    const weaponResDivisor = 1 + weaponRes / 100;
+    const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
+
+    const totalAttack = attack + effectiveWeaponAttack;
+
+    const skillMultiplier = skillPercent / 100;
+    const afterSkillPercent = totalAttack * skillMultiplier;
+
+    const skillAmpMultiplier = 1 + skillAmp / 100;
+    const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
+
+    const fdaMultiplier = 1 + fda / 100;
+    const afterFda = afterSkillAmp * fdaMultiplier;
+
+    const afterHiddenDr = afterFda - hiddenDr;
+    const afterDr = afterHiddenDr - dr;
+
+    const skillReductionDivisor = 1 + skillReduction / 100;
+    const afterSkillReduction = afterDr / skillReductionDivisor;
+
+    const fdrDivisor = 1 + fdr / 100;
+    const finalDamage = afterSkillReduction / fdrDivisor;
+
+    document.getElementById("skill_result").innerHTML =
+`========== SKILL CALCULATION ==========
+
+Attack: ${fmt(attack)}
+Weapon Attack: ${fmt(weaponAttack)}
+Weapon Attack Resistance: ${fmt(weaponRes)}%
+DEF: ${fmt(def)}
+
+Hidden DR from DEF:
+${fmt(def)} × 0.50 = ${fmt(hiddenDr)}
+
+Effective Weapon Attack:
+${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
+
+Total Attack:
+${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+
+After Skill %:
+${fmt(totalAttack)} × ${fmt(skillMultiplier)} = ${fmt(afterSkillPercent)}
+
+After Skill Amp:
+${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} = ${fmt(afterSkillAmp)}
+
+After Final Damage Amp:
+${fmt(afterSkillAmp)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
+
+After Hidden DR:
+${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+
+After DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(dr)} = ${fmt(afterDr)}
+
+After Skill Damage Reduction:
+${fmt(afterDr)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
+
+After Final Damage Resistance:
+${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(finalDamage)}
+
+<span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
+}
+
+function calculateBasic() {
+    const attack = num("basic_attack");
+    const weaponAttack = num("basic_weaponAttack");
+    const weaponRes = num("basic_weaponRes");
+    const basicAmp = num("basic_amp");
+    const fda = num("basic_fda");
+    const def = num("basic_def");
+    const hiddenDr = def * 0.5;
+    const dr = num("basic_dr");
+    const basicReduction = num("basic_reduction");
+    const fdr = num("basic_fdr");
+
+    const weaponResDivisor = 1 + weaponRes / 100;
+    const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
+
+    const totalAttack = attack + effectiveWeaponAttack;
+
+    const basicAmpMultiplier = 1 + basicAmp / 100;
+    const afterBasicAmp = totalAttack * basicAmpMultiplier;
+
+    const fdaMultiplier = 1 + fda / 100;
+    const afterFda = afterBasicAmp * fdaMultiplier;
+
+    const afterHiddenDr = afterFda - hiddenDr;
+    const afterDr = afterHiddenDr - dr;
+
+    const basicReductionDivisor = 1 + basicReduction / 100;
+    const afterBasicReduction = afterDr / basicReductionDivisor;
+
+    const fdrDivisor = 1 + fdr / 100;
+    const finalDamage = afterBasicReduction / fdrDivisor;
+
+    document.getElementById("basic_result").innerHTML =
+`========== BASIC ATTACK CALCULATION ==========
+
+Attack: ${fmt(attack)}
+Weapon Attack: ${fmt(weaponAttack)}
+Weapon Attack Resistance: ${fmt(weaponRes)}%
+DEF: ${fmt(def)}
+
+Hidden DR from DEF:
+${fmt(def)} × 0.50 = ${fmt(hiddenDr)}
+
+Effective Weapon Attack:
+${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
+
+Total Attack:
+${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+
+After Basic Attack Amp:
+${fmt(totalAttack)} × ${fmt(basicAmpMultiplier)} = ${fmt(afterBasicAmp)}
+
+After Final Damage Amp:
+${fmt(afterBasicAmp)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
+
+After Hidden DR:
+${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+
+After DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(dr)} = ${fmt(afterDr)}
+
+After Basic Attack Reduction:
+${fmt(afterDr)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
+
+After Final Damage Resistance:
+${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(finalDamage)}
+
+<span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
+}
+
+calculateSkill();
+calculateBasic();
+</script>
+
+</body>
+</html>
