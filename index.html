@@ -144,7 +144,7 @@
 
 <p class="note">
 Current theory model: Attack is always fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
-Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg Res When Hit / 100).
+Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100).
 </p>
 
 <div class="mode-box">
@@ -193,6 +193,11 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         <div class="row">
             <label>Final Damage Amp %</label>
             <input id="skill_fda" value="35">
+        </div>
+
+        <div class="row">
+            <label>Damage Amp on Hit %</label>
+            <input id="skill_dmgAmpOnHit" value="0">
         </div>
 
         <h3>Defender</h3>
@@ -263,6 +268,11 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         <div class="row">
             <label>Final Damage Amp %</label>
             <input id="basic_fda" value="35">
+        </div>
+
+        <div class="row">
+            <label>Damage Amp on Hit %</label>
+            <input id="basic_dmgAmpOnHit" value="0">
         </div>
 
         <h3>Defender</h3>
@@ -336,11 +346,13 @@ function calculateSkill() {
     const skillPercent = num("skill_percent");
     const skillAmp = num("skill_amp");
     const fda = num("skill_fda");
+    const dmgAmpOnHit = num("skill_dmgAmpOnHit");
     const def = num("skill_def");
     const pvpDef = num("skill_pvpDef");
     const dmgResWhenHit = num("skill_dmgResWhenHit");
     const totalDefense = def + pvpDef;
-    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100);
+    const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
+    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
     const hiddenDr = totalDefense * defenseToDrRatio;
     const dr = num("skill_dr");
     const skillReduction = num("skill_reduction");
@@ -475,11 +487,13 @@ function calculateBasic() {
     const weaponRes = num("basic_weaponRes");
     const basicAmp = num("basic_amp");
     const fda = num("basic_fda");
+    const dmgAmpOnHit = num("basic_dmgAmpOnHit");
     const def = num("basic_def");
     const pvpDef = num("basic_pvpDef");
     const dmgResWhenHit = num("basic_dmgResWhenHit");
     const totalDefense = def + pvpDef;
-    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100);
+    const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
+    const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
     const hiddenDr = totalDefense * defenseToDrRatio;
     const dr = num("basic_dr");
     const basicReduction = num("basic_reduction");
