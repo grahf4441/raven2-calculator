@@ -43,6 +43,11 @@
             margin-bottom: 10px;
         }
 
+        .checkbox-input {
+            width: auto;
+            transform: scale(1.2);
+        }
+
         label {
             display: inline-block;
             width: 245px;
@@ -200,6 +205,26 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
             <input id="skill_dmgAmpOnHit" value="0">
         </div>
 
+        <div class="row">
+            <label>Ignore Damage Reduction</label>
+            <input id="skill_ignoreDr" value="0">
+        </div>
+
+        <div class="row">
+            <label>Critical Hit?</label>
+            <input id="skill_isCrit" class="checkbox-input" type="checkbox">
+        </div>
+
+        <div class="row">
+            <label>Base Crit Multiplier</label>
+            <input id="skill_baseCrit" value="1.5">
+        </div>
+
+        <div class="row">
+            <label>Crit Damage Amp %</label>
+            <input id="skill_critDmgAmp" value="0">
+        </div>
+
         <h3>Defender</h3>
 
         <div class="row">
@@ -230,6 +255,11 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         <div class="row">
             <label>Skill Damage Reduction</label>
             <input id="skill_reduction" value="70">
+        </div>
+
+        <div class="row">
+            <label>Crit Damage Reduction %</label>
+            <input id="skill_critDmgReduction" value="0">
         </div>
 
         <div class="row">
@@ -275,6 +305,26 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
             <input id="basic_dmgAmpOnHit" value="0">
         </div>
 
+        <div class="row">
+            <label>Ignore Damage Reduction</label>
+            <input id="basic_ignoreDr" value="0">
+        </div>
+
+        <div class="row">
+            <label>Critical Hit?</label>
+            <input id="basic_isCrit" class="checkbox-input" type="checkbox">
+        </div>
+
+        <div class="row">
+            <label>Base Crit Multiplier</label>
+            <input id="basic_baseCrit" value="1.5">
+        </div>
+
+        <div class="row">
+            <label>Crit Damage Amp %</label>
+            <input id="basic_critDmgAmp" value="0">
+        </div>
+
         <h3>Defender</h3>
 
         <div class="row">
@@ -308,6 +358,11 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
         </div>
 
         <div class="row">
+            <label>Crit Damage Reduction %</label>
+            <input id="basic_critDmgReduction" value="0">
+        </div>
+
+        <div class="row">
             <label>Final Damage Resistance</label>
             <input id="basic_fdr" value="83">
         </div>
@@ -323,8 +378,15 @@ Hidden DR is automatically estimated as (DEF + PVP Defense) × 0.35 × (1 + Dmg 
 
 <script>
 function num(id) {
-    const value = parseFloat(document.getElementById(id).value);
+    const element = document.getElementById(id);
+    if (!element) return 0;
+    const value = parseFloat(element.value);
     return isNaN(value) ? 0 : value;
+}
+
+function checked(id) {
+    const element = document.getElementById(id);
+    return element ? element.checked : false;
 }
 
 function fmt(value) {
@@ -332,11 +394,42 @@ function fmt(value) {
 }
 
 function currentMode() {
-    return document.getElementById("formulaMode").value;
+    const element = document.getElementById("formulaMode");
+    return element ? element.value : "drBeforeScaling";
 }
 
 function minimumDamage(value) {
     return Math.max(1, value);
+}
+
+function applyCrit(baseDamage, isCrit, baseCrit, critDmgAmp, critDmgReduction) {
+    if (!isCrit) {
+        return {
+            critMultiplier: 1,
+            critExtraRaw: 0,
+            critExtraReduced: 0,
+            result: baseDamage
+        };
+    }
+
+    const critMultiplier = baseCrit * (1 + critDmgAmp / 100);
+    const critExtraRaw = baseDamage * Math.max(0, critMultiplier - 1);
+    const critExtraReduced = critExtraRaw / (1 + critDmgReduction / 100);
+    const result = baseDamage + critExtraReduced;
+
+    return {
+        critMultiplier,
+        critExtraRaw,
+        critExtraReduced,
+        result
+    };
+}
+
+function writeQuickResult(id, label, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.innerHTML = `${label}: ${fmt(value)}`;
+    }
 }
 
 function calculateSkill() {
@@ -347,6 +440,11 @@ function calculateSkill() {
     const skillAmp = num("skill_amp");
     const fda = num("skill_fda");
     const dmgAmpOnHit = num("skill_dmgAmpOnHit");
+    const ignoreDr = num("skill_ignoreDr");
+    const isCrit = checked("skill_isCrit");
+    const baseCrit = num("skill_baseCrit");
+    const critDmgAmp = num("skill_critDmgAmp");
+
     const def = num("skill_def");
     const pvpDef = num("skill_pvpDef");
     const dmgResWhenHit = num("skill_dmgResWhenHit");
@@ -354,8 +452,11 @@ function calculateSkill() {
     const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
     const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
     const hiddenDr = totalDefense * defenseToDrRatio;
+
     const dr = num("skill_dr");
+    const effectiveDr = Math.max(0, dr - ignoreDr);
     const skillReduction = num("skill_reduction");
+    const critDmgReduction = num("skill_critDmgReduction");
     const fdr = num("skill_fdr");
 
     const weaponResDivisor = 1 + weaponRes / 100;
@@ -376,109 +477,131 @@ ${currentMode() === "drBeforeScaling" ? "DR before skill scaling" : "DR after sk
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
+Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
+Ignore Damage Reduction: ${fmt(ignoreDr)}
+Critical Hit: ${isCrit ? "YES" : "NO"}
+Base Crit Multiplier: ${fmt(baseCrit)}
+Crit Damage Amp: ${fmt(critDmgAmp)}%
+Crit Damage Reduction: ${fmt(critDmgReduction)}%
+
 DEF: ${fmt(def)}
 PVP Defense: ${fmt(pvpDef)}
 Total Defense: ${fmt(totalDefense)}
 Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
 
 Hidden DR from Defense:
-(${fmt(def)} + ${fmt(pvpDef)}) × ${fmt(defenseToDrRatio)} <span class="stage-result">= ${fmt(hiddenDr)}</span>
+(${fmt(def)} + ${fmt(pvpDef)}) × 0.35 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
 
 Effective Weapon Attack:
-${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} <span class="stage-result">= ${fmt(effectiveWeaponAttack)}</span>
+${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
 
 Total Attack:
-${fmt(attack)} + ${fmt(effectiveWeaponAttack)} <span class="stage-result">= ${fmt(totalAttack)}</span>
+${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+
+Effective DR Stat:
+max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
 
 `;
 
+    let finalDamage;
+
     if (currentMode() === "drBeforeScaling") {
         const afterHiddenDr = totalAttack - hiddenDr;
-        const afterDr = afterHiddenDr - dr;
+        const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeScaling = minimumDamage(afterDr);
 
         const afterSkillPercent = afterMinimumBeforeScaling * skillMultiplier;
         const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
-        const afterFda = afterSkillAmp * fdaMultiplier;
+        const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
+        const afterFda = crit.result * fdaMultiplier;
         const afterSkillReduction = afterFda / skillReductionDivisor;
         const afterFdr = afterSkillReduction / fdrDivisor;
-        const finalDamage = minimumDamage(afterFdr);
+        finalDamage = minimumDamage(afterFdr);
 
         log += `After Hidden DR:
-${fmt(totalAttack)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
+${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
-After DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+After Effective DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
 
 Minimum Damage Floor Before Scaling:
-max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeScaling)}</span>
+max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeScaling)}
 
 After Skill %:
-${fmt(afterMinimumBeforeScaling)} × ${fmt(skillMultiplier)} <span class="stage-result">= ${fmt(afterSkillPercent)}</span>
+${fmt(afterMinimumBeforeScaling)} × ${fmt(skillMultiplier)} = ${fmt(afterSkillPercent)}
 
 After Skill Amp:
-${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} <span class="stage-result">= ${fmt(afterSkillAmp)}</span>
+${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} = ${fmt(afterSkillAmp)}
+
+Critical Hit Layer:
+Base damage: ${fmt(afterSkillAmp)}
+Raw crit extra: ${fmt(afterSkillAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
+Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
+After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
 
 After Final Damage Amp:
-${fmt(afterSkillAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
+${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Skill Damage Reduction:
-${fmt(afterFda)} ÷ ${fmt(skillReductionDivisor)} <span class="stage-result">= ${fmt(afterSkillReduction)}</span>
+${fmt(afterFda)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
 
 After Final Damage Resistance:
-${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
 
 Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
+max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
 
 <span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
     } else {
         const afterSkillPercent = totalAttack * skillMultiplier;
         const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
-        const afterFda = afterSkillAmp * fdaMultiplier;
+        const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
+        const afterFda = crit.result * fdaMultiplier;
         const afterHiddenDr = afterFda - hiddenDr;
-        const afterDr = afterHiddenDr - dr;
+        const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeReduction = minimumDamage(afterDr);
         const afterSkillReduction = afterMinimumBeforeReduction / skillReductionDivisor;
         const afterFdr = afterSkillReduction / fdrDivisor;
-        const finalDamage = minimumDamage(afterFdr);
+        finalDamage = minimumDamage(afterFdr);
 
         log += `After Skill %:
-${fmt(totalAttack)} × ${fmt(skillMultiplier)} <span class="stage-result">= ${fmt(afterSkillPercent)}</span>
+${fmt(totalAttack)} × ${fmt(skillMultiplier)} = ${fmt(afterSkillPercent)}
 
 After Skill Amp:
-${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} <span class="stage-result">= ${fmt(afterSkillAmp)}</span>
+${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} = ${fmt(afterSkillAmp)}
+
+Critical Hit Layer:
+Base damage: ${fmt(afterSkillAmp)}
+Raw crit extra: ${fmt(afterSkillAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
+Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
+After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
 
 After Final Damage Amp:
-${fmt(afterSkillAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
+${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Hidden DR:
-${fmt(afterFda)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
+${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
-After DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+After Effective DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
 
 Minimum Damage Floor Before Reduction:
-max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeReduction)}</span>
+max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeReduction)}
 
 After Skill Damage Reduction:
-${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(skillReductionDivisor)} <span class="stage-result">= ${fmt(afterSkillReduction)}</span>
+${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
 
 After Final Damage Resistance:
-${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
 
 Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
+max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
 
 <span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
     }
 
     document.getElementById("skill_result").innerHTML = log;
-    const quickSkill = document.getElementById("skill_final_quick");
-    if (quickSkill) {
-        const match = log.match(/FINAL SKILL DAMAGE: ([0-9.]+)/);
-        quickSkill.innerHTML = match ? `FINAL SKILL DAMAGE: ${match[1]}` : "FINAL SKILL DAMAGE: --";
-    }
+    writeQuickResult("skill_final_quick", "FINAL SKILL DAMAGE", finalDamage);
 }
 
 function calculateBasic() {
@@ -488,6 +611,11 @@ function calculateBasic() {
     const basicAmp = num("basic_amp");
     const fda = num("basic_fda");
     const dmgAmpOnHit = num("basic_dmgAmpOnHit");
+    const ignoreDr = num("basic_ignoreDr");
+    const isCrit = checked("basic_isCrit");
+    const baseCrit = num("basic_baseCrit");
+    const critDmgAmp = num("basic_critDmgAmp");
+
     const def = num("basic_def");
     const pvpDef = num("basic_pvpDef");
     const dmgResWhenHit = num("basic_dmgResWhenHit");
@@ -495,8 +623,11 @@ function calculateBasic() {
     const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
     const defenseToDrRatio = 0.35 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
     const hiddenDr = totalDefense * defenseToDrRatio;
+
     const dr = num("basic_dr");
+    const effectiveDr = Math.max(0, dr - ignoreDr);
     const basicReduction = num("basic_reduction");
+    const critDmgReduction = num("basic_critDmgReduction");
     const fdr = num("basic_fdr");
 
     const weaponResDivisor = 1 + weaponRes / 100;
@@ -516,101 +647,123 @@ ${currentMode() === "drBeforeScaling" ? "DR before basic scaling" : "DR after ba
 Attack: ${fmt(attack)}
 Weapon Attack: ${fmt(weaponAttack)}
 Weapon Attack Resistance: ${fmt(weaponRes)}%
+Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
+Ignore Damage Reduction: ${fmt(ignoreDr)}
+Critical Hit: ${isCrit ? "YES" : "NO"}
+Base Crit Multiplier: ${fmt(baseCrit)}
+Crit Damage Amp: ${fmt(critDmgAmp)}%
+Crit Damage Reduction: ${fmt(critDmgReduction)}%
+
 DEF: ${fmt(def)}
 PVP Defense: ${fmt(pvpDef)}
 Total Defense: ${fmt(totalDefense)}
 Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
 
 Hidden DR from Defense:
-(${fmt(def)} + ${fmt(pvpDef)}) × ${fmt(defenseToDrRatio)} <span class="stage-result">= ${fmt(hiddenDr)}</span>
+(${fmt(def)} + ${fmt(pvpDef)}) × 0.35 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
 
 Effective Weapon Attack:
-${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} <span class="stage-result">= ${fmt(effectiveWeaponAttack)}</span>
+${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
 
 Total Attack:
-${fmt(attack)} + ${fmt(effectiveWeaponAttack)} <span class="stage-result">= ${fmt(totalAttack)}</span>
+${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+
+Effective DR Stat:
+max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
 
 `;
 
+    let finalDamage;
+
     if (currentMode() === "drBeforeScaling") {
         const afterHiddenDr = totalAttack - hiddenDr;
-        const afterDr = afterHiddenDr - dr;
+        const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeScaling = minimumDamage(afterDr);
 
         const afterBasicAmp = afterMinimumBeforeScaling * basicAmpMultiplier;
-        const afterFda = afterBasicAmp * fdaMultiplier;
+        const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
+        const afterFda = crit.result * fdaMultiplier;
         const afterBasicReduction = afterFda / basicReductionDivisor;
         const afterFdr = afterBasicReduction / fdrDivisor;
-        const finalDamage = minimumDamage(afterFdr);
+        finalDamage = minimumDamage(afterFdr);
 
         log += `After Hidden DR:
-${fmt(totalAttack)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
+${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
-After DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+After Effective DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
 
 Minimum Damage Floor Before Scaling:
-max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeScaling)}</span>
+max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeScaling)}
 
 After Basic Attack Amp:
-${fmt(afterMinimumBeforeScaling)} × ${fmt(basicAmpMultiplier)} <span class="stage-result">= ${fmt(afterBasicAmp)}</span>
+${fmt(afterMinimumBeforeScaling)} × ${fmt(basicAmpMultiplier)} = ${fmt(afterBasicAmp)}
+
+Critical Hit Layer:
+Base damage: ${fmt(afterBasicAmp)}
+Raw crit extra: ${fmt(afterBasicAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
+Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
+After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
 
 After Final Damage Amp:
-${fmt(afterBasicAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
+${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Basic Attack Reduction:
-${fmt(afterFda)} ÷ ${fmt(basicReductionDivisor)} <span class="stage-result">= ${fmt(afterBasicReduction)}</span>
+${fmt(afterFda)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
 
 After Final Damage Resistance:
-${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
 
 Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
+max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
 
 <span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
     } else {
         const afterBasicAmp = totalAttack * basicAmpMultiplier;
-        const afterFda = afterBasicAmp * fdaMultiplier;
+        const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
+        const afterFda = crit.result * fdaMultiplier;
         const afterHiddenDr = afterFda - hiddenDr;
-        const afterDr = afterHiddenDr - dr;
+        const afterDr = afterHiddenDr - effectiveDr;
         const afterMinimumBeforeReduction = minimumDamage(afterDr);
         const afterBasicReduction = afterMinimumBeforeReduction / basicReductionDivisor;
         const afterFdr = afterBasicReduction / fdrDivisor;
-        const finalDamage = minimumDamage(afterFdr);
+        finalDamage = minimumDamage(afterFdr);
 
         log += `After Basic Attack Amp:
-${fmt(totalAttack)} × ${fmt(basicAmpMultiplier)} <span class="stage-result">= ${fmt(afterBasicAmp)}</span>
+${fmt(totalAttack)} × ${fmt(basicAmpMultiplier)} = ${fmt(afterBasicAmp)}
+
+Critical Hit Layer:
+Base damage: ${fmt(afterBasicAmp)}
+Raw crit extra: ${fmt(afterBasicAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
+Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
+After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
 
 After Final Damage Amp:
-${fmt(afterBasicAmp)} × ${fmt(fdaMultiplier)} <span class="stage-result">= ${fmt(afterFda)}</span>
+${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
 
 After Hidden DR:
-${fmt(afterFda)} - ${fmt(hiddenDr)} <span class="stage-result">= ${fmt(afterHiddenDr)}</span>
+${fmt(afterFda)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
 
-After DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(dr)} <span class="stage-result">= ${fmt(afterDr)}</span>
+After Effective DR Stat:
+${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
 
 Minimum Damage Floor Before Reduction:
-max(1, ${fmt(afterDr)}) <span class="stage-result">= ${fmt(afterMinimumBeforeReduction)}</span>
+max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeReduction)}
 
 After Basic Attack Reduction:
-${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(basicReductionDivisor)} <span class="stage-result">= ${fmt(afterBasicReduction)}</span>
+${fmt(afterMinimumBeforeReduction)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
 
 After Final Damage Resistance:
-${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} <span class="stage-result">= ${fmt(afterFdr)}</span>
+${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
 
 Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) <span class="stage-result">= ${fmt(finalDamage)}</span>
+max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
 
 <span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
     }
 
     document.getElementById("basic_result").innerHTML = log;
-    const quickBasic = document.getElementById("basic_final_quick");
-    if (quickBasic) {
-        const match = log.match(/FINAL BASIC ATTACK DAMAGE: ([0-9.]+)/);
-        quickBasic.innerHTML = match ? `FINAL BASIC DAMAGE: ${match[1]}` : "FINAL BASIC DAMAGE: --";
-    }
+    writeQuickResult("basic_final_quick", "FINAL BASIC DAMAGE", finalDamage);
 }
 
 function setupLiveUpdates() {
