@@ -1,4 +1,4 @@
-<!-- Raven2Calculator_v0.1.7
+<!-- Raven2Calculator_v0.1.8
 Changed:
 - Added click upload, drag/drop, and Ctrl+V paste image OCR import.
 - One shared input panel instead of duplicate Skill/Basic fields.
@@ -11,7 +11,7 @@ Changed:
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Raven2 Damage Calculator v0.1.7</title>
+<title>Raven2 Damage Calculator v0.1.8</title>
 <style>
 :root{--bg:#101217;--panel:#181b23;--line:#313849;--text:#eef2f8;--muted:#9da7ba;--accent:#48d597;--accent2:#4aa8ff;--input:#0d0f14}*{box-sizing:border-box}body{min-height:100vh;margin:0;padding:24px;background:radial-gradient(circle at top left,rgba(72,213,151,.12),transparent 34%),radial-gradient(circle at top right,rgba(74,168,255,.10),transparent 28%),var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}.page{max-width:1900px;margin:0 auto}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:18px;padding:20px;background:linear-gradient(135deg,rgba(32,37,50,.95),rgba(24,27,35,.95));border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 40px rgba(0,0,0,.28)}.hero h1{margin:0 0 8px;font-size:32px;letter-spacing:-.04em}.hero p{max-width:1100px;margin:0;color:var(--muted);line-height:1.45}.badge{display:inline-flex;padding:8px 12px;border:1px solid rgba(72,213,151,.4);border-radius:999px;background:rgba(72,213,151,.08);color:var(--accent);font-weight:800;white-space:nowrap}.card{background:rgba(24,27,35,.92);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25);margin-bottom:18px}h2{padding-bottom:10px;margin:0 0 16px;border-bottom:1px solid var(--line);font-size:22px;letter-spacing:-.02em}h3{margin:0 0 10px;color:var(--accent2);font-size:13px;letter-spacing:.12em;text-transform:uppercase}.input-grid{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:16px}.section{background:rgba(13,15,20,.45);border:1px solid rgba(49,56,73,.7);border-radius:14px;padding:14px}.row{display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center;margin-bottom:9px}.row:last-child{margin-bottom:0}label{color:#cbd3e2;font-size:13px}input{width:100%;padding:8px 9px;background:var(--input);color:var(--text);border:1px solid #384153;border-radius:10px;outline:none;transition:border-color .15s,box-shadow .15s}input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(72,213,151,.14)}.checkbox{width:auto;transform:scale(1.2);justify-self:start;accent-color:var(--accent)}.results{display:grid;grid-template-columns:1fr 1fr;gap:18px}.quick{min-height:110px;display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,rgba(72,213,151,.13),rgba(74,168,255,.10));border:1px solid rgba(72,213,151,.45);border-radius:18px;color:var(--accent);font-size:30px;font-weight:950;text-align:center;letter-spacing:-.04em}.logs{display:grid;grid-template-columns:1fr 1fr;gap:18px}.log{height:620px;overflow:auto;padding:16px;background:#0b0d12;border:1px solid #2d3545;border-radius:14px;font-family:Consolas,Monaco,monospace;white-space:pre;line-height:1.48;color:#d9e3f2}.final{display:inline-block;margin-top:4px;color:var(--accent);font-size:22px;font-weight:900}.note{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.35}hr{border:0;border-top:1px solid var(--line);margin:14px 0}@media(max-width:1500px){.input-grid{grid-template-columns:repeat(2,minmax(280px,1fr))}}@media(max-width:1000px){body{padding:16px}.hero{display:block}.badge{margin-top:16px}.input-grid,.results,.logs{grid-template-columns:1fr}.log{height:520px}}
 
@@ -27,7 +27,7 @@ Changed:
 </head>
 <body>
 <div class="page">
-<section class="hero"><div><h1>Raven2 Damage Calculator</h1><p>v0.1.7 theory model: one shared input panel feeds both Skill and Basic calculations. Hidden DR = (DEF + PVP Defense) × 0.75 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100). PvP/Bash are flat damage added after Final Damage Amp, before Skill/Basic Reduction and Final Damage Resistance.</p></div><div class="badge">v0.1.7</div></section>
+<section class="hero"><div><h1>Raven2 Damage Calculator</h1><p>v0.1.8 theory model: one shared input panel feeds both Skill and Basic calculations. Hidden DR = (DEF + PVP Defense) × 0.75 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100). PvP/Bash are flat damage added after Final Damage Amp, before Skill/Basic Reduction and Final Damage Resistance.</p></div><div class="badge">v0.1.8</div></section>
 
 
 <section class="ocr-panel">
@@ -57,7 +57,7 @@ DMG AMP On ATK → Damage Amp on Hit %<br>
 PvP DMG → PVP Damage<br>
 Bash DMG → Bash Damage<br>
 CRIT DMG AMP → Crit Damage Amp %, if present<br>
-PvP Defense still comes from the stat list if visible.
+PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>Basic ATK DMG RES Rate → Basic Attack Reduction<br>Skill DMG RES Rate → Skill Damage Reduction<br>Final DMG RES Rate → Final Damage Resistance<br>DMG Reduction → DR Stat<br>DMG RES Rate When Hit → Dmg Res When Hit %<br>CRIT DMG RES Rate → Crit Damage Reduction %<br>Large percent OCR reads like 445 are auto-corrected to 44.5.
 </div>
 </div>
 </div>
@@ -108,8 +108,54 @@ PvP Defense still comes from the stat list if visible.
 <script>
 
 function normalizeStatName(name){return name.toLowerCase().replace(/[\s._-]+/g," ").replace(/dmg/g,"damage").replace(/atk/g,"attack").replace(/pvp/g,"pvp").trim();}
-function extractStatPairs(text){const pairs=[];const lines=text.split(/\n+/);for(const rawLine of lines){const line=rawLine.replace(/[|]/g," ").replace(/\s+/g," ").trim();if(!line)continue;const match=line.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*%?\s*$/);if(!match)continue;const name=match[1].trim();const value=parseFloat(match[2]);if(!Number.isFinite(value))continue;pairs.push({name,normalized:normalizeStatName(name),value});}return pairs;}
+
+function extractStatPairs(text) {
+    const pairs = [];
+    const lines = text.split(/\n+/);
+
+    for (const rawLine of lines) {
+        let line = rawLine
+            .replace(/[|]/g, " ")
+            .replace(/[，]/g, ",")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        if (!line) continue;
+
+        // Accept:
+        // Stat Name 45.5%
+        // Stat Name 45 5%  (some OCR splits decimals)
+        // Stat Name 45,5%
+        let match = line.match(/^(.+?)\s+(-?\d+(?:[.,]\d+)?)\s*%?\s*$/);
+
+        if (!match) {
+            const splitDecimal = line.match(/^(.+?)\s+(-?\d+)\s+(\d)\s*%?\s*$/);
+            if (splitDecimal) {
+                match = [splitDecimal[0], splitDecimal[1], splitDecimal[2] + "." + splitDecimal[3]];
+            }
+        }
+
+        if (!match) continue;
+
+        const name = match[1].trim();
+        const value = parseFloat(String(match[2]).replace(",", "."));
+        if (!Number.isFinite(value)) continue;
+
+        pairs.push({ name, normalized: normalizeStatName(name), value });
+    }
+
+    return pairs;
+}
+
+function fixPercentOcr(value) {
+    // OCR often drops decimals from percentages: 45.5 -> 455 or 44.5 -> 445.
+    // If a percent-like stat is impossibly high but under 1000, assume one missing decimal.
+    if (value > 100 && value <= 1000) return value / 10;
+    return value;
+}
+
 function setFieldValue(id,value){const e=document.getElementById(id);if(!e)return false;e.value=value;return true;}
+
 
 function findTopCombatStats(text) {
     const lines = text.split(/\n+/).map(l => l.replace(/[|,]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
@@ -117,16 +163,13 @@ function findTopCombatStats(text) {
     for (let i = 0; i < lines.length; i++) {
         const lower = lines[i].toLowerCase();
 
-        // Stop once we hit the ATK stat section; top combat numbers should be above it.
-        if (lower === "atk" || lower.includes("stats")) {
+        if (lower === "atk" || lower === "def" || lower.includes("stats")) {
             break;
         }
 
         const nums = lines[i].match(/\d+(?:\.\d+)?/g);
         if (nums && nums.length >= 3) {
             const values = nums.map(Number);
-
-            // Ignore obvious HP/MP lines like 26061/26083.
             const plausible = values.filter(v => v >= 50 && v <= 5000);
             if (plausible.length >= 3) {
                 return {
@@ -167,17 +210,20 @@ function applyDetectedStats() {
             setFieldValue("weaponAttack", v);
             applied.push(`Weapon Attack = ${v}`);
         } else if (n === "basic attack damage amp") {
-            setFieldValue("basic_amp", v);
-            applied.push(`Basic Attack Amp = ${v}`);
+            const fixed = fixPercentOcr(v);
+            setFieldValue("basic_amp", fixed);
+            applied.push(`Basic Attack Amp = ${fixed}`);
         } else if (n === "final damage amp") {
-            setFieldValue("fda", v);
-            applied.push(`Final Damage Amp = ${v}`);
+            const fixed = fixPercentOcr(v);
+            setFieldValue("fda", fixed);
+            applied.push(`Final Damage Amp = ${fixed}`);
         } else if (n === "ignore damage reduction") {
             setFieldValue("ignoreDr", v);
             applied.push(`Ignore Damage Reduction = ${v}`);
         } else if (n === "damage amp on attack") {
-            setFieldValue("dmgAmpOnHit", v);
-            applied.push(`Damage Amp on Hit = ${v}`);
+            const fixed = fixPercentOcr(v);
+            setFieldValue("dmgAmpOnHit", fixed);
+            applied.push(`Damage Amp on Hit = ${fixed}`);
         } else if (n === "pvp damage") {
             setFieldValue("pvpDamage", v);
             applied.push(`PVP Damage = ${v}`);
@@ -185,11 +231,39 @@ function applyDetectedStats() {
             setFieldValue("bashDamage", v);
             applied.push(`Bash Damage = ${v}`);
         } else if (n === "crit damage amp" || n === "critical damage amp") {
-            setFieldValue("critDmgAmp", v);
-            applied.push(`Crit Damage Amp = ${v}`);
-        } else if (n === "pvp defense" || n === "pvp defence") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("critDmgAmp", fixed);
+            applied.push(`Crit Damage Amp = ${fixed}`);
+        } else if (n === "pvp defense" || n === "pvp defence" || n === "pvp def") {
             setFieldValue("pvpDef", v);
             applied.push(`PVP Defense = ${v}`);
+        } else if (n === "weapon attack res rate" || n === "weapon attack resistance rate" || n === "weapon atk res rate") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("weaponRes", fixed);
+            applied.push(`Weapon Attack Resistance = ${fixed}`);
+        } else if (n === "basic attack damage res rate" || n === "basic attack damage resistance rate") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("basic_reduction", fixed);
+            applied.push(`Basic Attack Reduction = ${fixed}`);
+        } else if (n === "skill damage res rate" || n === "skill damage resistance rate") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("skill_reduction", fixed);
+            applied.push(`Skill Damage Reduction = ${fixed}`);
+        } else if (n === "final damage res rate" || n === "final damage resistance rate") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("fdr", fixed);
+            applied.push(`Final Damage Resistance = ${fixed}`);
+        } else if (n === "damage reduction") {
+            setFieldValue("dr", v);
+            applied.push(`DR Stat = ${v}`);
+        } else if (n === "damage res rate when hit" || n === "damage resistance rate when hit") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("dmgResWhenHit", fixed);
+            applied.push(`Dmg Res When Hit = ${fixed}`);
+        } else if (n === "crit damage res rate" || n === "critical damage res rate" || n === "crit damage resistance rate") {
+            const fixed = fixPercentOcr(v);
+            setFieldValue("critDmgReduction", fixed);
+            applied.push(`Crit Damage Reduction = ${fixed}`);
         } else if (
             n === "skill damage amp" ||
             n === "unique skill damage amp" ||
@@ -197,7 +271,7 @@ function applyDetectedStats() {
             n === "main target attack damage amp"
         ) {
             if (skillAmpTotal === null) skillAmpTotal = 0;
-            skillAmpTotal += v;
+            skillAmpTotal += fixPercentOcr(v);
         }
     }
 
@@ -206,7 +280,6 @@ function applyDetectedStats() {
         setFieldValue("attack", Number(mainAttack.toFixed(2)));
         applied.push(`Attack = Total ATK - Weapon ATK = ${mainAttack.toFixed(2)}`);
     } else {
-        // Fallback only if top total ATK was not detected.
         for (const pair of pairs) {
             if (pair.normalized === "attack") {
                 setFieldValue("attack", pair.value);
@@ -219,6 +292,14 @@ function applyDetectedStats() {
     if (totalDef !== null) {
         setFieldValue("def", totalDef);
         applied.push(`DEF = top row second number = ${totalDef}`);
+    } else {
+        for (const pair of pairs) {
+            if (pair.normalized === "def" || pair.normalized === "defense") {
+                setFieldValue("def", pair.value);
+                applied.push(`DEF fallback from stat list = ${pair.value}`);
+                break;
+            }
+        }
     }
 
     if (skillAmpTotal !== null) {
