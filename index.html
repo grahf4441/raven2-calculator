@@ -1,918 +1,268 @@
-<!--
-Raven2Calculator_v0.1.3
-
+<!-- Raven2Calculator_v0.1.6
 Changed:
-- Moved PvP Damage and Bash Damage back out of the attack packet.
-- PvP/Bash are now added after Final Damage Amp, before Skill/Basic Reduction and Final Damage Resistance.
-- Hidden DR ratio changed from 0.35 to 0.75 for testing.
-- Shared fields now sync between Skill and Basic calculators.
-- Skill-specific fields remain independent: Skill %, Skill Amp %, Skill Damage Reduction.
-- Basic-specific fields remain independent: Basic Attack Amp %, Basic Attack Reduction.
+- Added click upload, drag/drop, and Ctrl+V paste image OCR import.
+- One shared input panel instead of duplicate Skill/Basic fields.
+- Condensed inputs into multi-column sections near the top.
+- Final Skill and Basic results appear side-by-side under inputs.
+- Full calculation logs appear below results.
+- Formula assumptions unchanged from v0.1.3.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Raven2 Damage Calculator v0.1.3</title>
-    <style>
-        :root {
-            --bg: #101217;
-            --panel: #181b23;
-            --line: #313849;
-            --text: #eef2f8;
-            --muted: #9da7ba;
-            --accent: #48d597;
-            --accent-2: #4aa8ff;
-            --input: #0d0f14;
-        }
+<meta charset="UTF-8">
+<title>Raven2 Damage Calculator v0.1.6</title>
+<style>
+:root{--bg:#101217;--panel:#181b23;--line:#313849;--text:#eef2f8;--muted:#9da7ba;--accent:#48d597;--accent2:#4aa8ff;--input:#0d0f14}*{box-sizing:border-box}body{min-height:100vh;margin:0;padding:24px;background:radial-gradient(circle at top left,rgba(72,213,151,.12),transparent 34%),radial-gradient(circle at top right,rgba(74,168,255,.10),transparent 28%),var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}.page{max-width:1900px;margin:0 auto}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:18px;padding:20px;background:linear-gradient(135deg,rgba(32,37,50,.95),rgba(24,27,35,.95));border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 40px rgba(0,0,0,.28)}.hero h1{margin:0 0 8px;font-size:32px;letter-spacing:-.04em}.hero p{max-width:1100px;margin:0;color:var(--muted);line-height:1.45}.badge{display:inline-flex;padding:8px 12px;border:1px solid rgba(72,213,151,.4);border-radius:999px;background:rgba(72,213,151,.08);color:var(--accent);font-weight:800;white-space:nowrap}.card{background:rgba(24,27,35,.92);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25);margin-bottom:18px}h2{padding-bottom:10px;margin:0 0 16px;border-bottom:1px solid var(--line);font-size:22px;letter-spacing:-.02em}h3{margin:0 0 10px;color:var(--accent2);font-size:13px;letter-spacing:.12em;text-transform:uppercase}.input-grid{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:16px}.section{background:rgba(13,15,20,.45);border:1px solid rgba(49,56,73,.7);border-radius:14px;padding:14px}.row{display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center;margin-bottom:9px}.row:last-child{margin-bottom:0}label{color:#cbd3e2;font-size:13px}input{width:100%;padding:8px 9px;background:var(--input);color:var(--text);border:1px solid #384153;border-radius:10px;outline:none;transition:border-color .15s,box-shadow .15s}input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(72,213,151,.14)}.checkbox{width:auto;transform:scale(1.2);justify-self:start;accent-color:var(--accent)}.results{display:grid;grid-template-columns:1fr 1fr;gap:18px}.quick{min-height:110px;display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,rgba(72,213,151,.13),rgba(74,168,255,.10));border:1px solid rgba(72,213,151,.45);border-radius:18px;color:var(--accent);font-size:30px;font-weight:950;text-align:center;letter-spacing:-.04em}.logs{display:grid;grid-template-columns:1fr 1fr;gap:18px}.log{height:620px;overflow:auto;padding:16px;background:#0b0d12;border:1px solid #2d3545;border-radius:14px;font-family:Consolas,Monaco,monospace;white-space:pre;line-height:1.48;color:#d9e3f2}.final{display:inline-block;margin-top:4px;color:var(--accent);font-size:22px;font-weight:900}.note{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.35}hr{border:0;border-top:1px solid var(--line);margin:14px 0}@media(max-width:1500px){.input-grid{grid-template-columns:repeat(2,minmax(280px,1fr))}}@media(max-width:1000px){body{padding:16px}.hero{display:block}.badge{margin-top:16px}.input-grid,.results,.logs{grid-template-columns:1fr}.log{height:520px}}
 
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            min-height: 100vh;
-            margin: 0;
-            padding: 28px;
-            background:
-                radial-gradient(circle at top left, rgba(72, 213, 151, 0.12), transparent 34%),
-                radial-gradient(circle at top right, rgba(74, 168, 255, 0.10), transparent 28%),
-                var(--bg);
-            color: var(--text);
-            font-family: Inter, Segoe UI, Arial, sans-serif;
-        }
-
-        .page-shell {
-            max-width: 1900px;
-            margin: 0 auto;
-        }
-
-        .hero {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            align-items: flex-end;
-            margin-bottom: 22px;
-            padding: 22px;
-            background: linear-gradient(135deg, rgba(32, 37, 50, 0.95), rgba(24, 27, 35, 0.95));
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-        }
-
-        .hero h1 {
-            margin: 0 0 8px;
-            font-size: 34px;
-            letter-spacing: -0.04em;
-        }
-
-        .hero p {
-            max-width: 950px;
-            margin: 0;
-            color: var(--muted);
-            line-height: 1.45;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 8px 12px;
-            border: 1px solid rgba(72, 213, 151, 0.4);
-            border-radius: 999px;
-            background: rgba(72, 213, 151, 0.08);
-            color: var(--accent);
-            font-weight: 800;
-            white-space: nowrap;
-        }
-
-        h2, h3 {
-            margin-top: 0;
-        }
-
-        h2 {
-            padding-bottom: 10px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--line);
-            font-size: 22px;
-            letter-spacing: -0.02em;
-        }
-
-        h3 {
-            margin: 18px 0 10px;
-            color: var(--accent-2);
-            font-size: 13px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        .calculators {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 26px;
-        }
-
-        .card {
-            background: rgba(24, 27, 35, 0.92);
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 20px;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
-        }
-
-        .calc-layout {
-            display: grid;
-            grid-template-columns: 430px minmax(900px, 1fr);
-            gap: 20px;
-            align-items: start;
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 150px;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        label {
-            color: #cbd3e2;
-            font-size: 14px;
-        }
-
-        input {
-            width: 100%;
-            padding: 9px 10px;
-            background: var(--input);
-            color: var(--text);
-            border: 1px solid #384153;
-            border-radius: 10px;
-            outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-
-        input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(72, 213, 151, 0.14);
-        }
-
-        .checkbox-input {
-            width: auto;
-            transform: scale(1.2);
-            justify-self: start;
-            accent-color: var(--accent);
-        }
-
-        button {
-            width: 100%;
-            padding: 11px 16px;
-            margin-top: 12px;
-            cursor: pointer;
-            border: 0;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #22b477, #4aa8ff);
-            color: white;
-            font-weight: 800;
-            letter-spacing: 0.01em;
-            box-shadow: 0 12px 26px rgba(34, 180, 119, 0.22);
-        }
-
-        button:hover {
-            filter: brightness(1.08);
-        }
-
-        .quick-final {
-            margin-top: 14px;
-            padding: 16px;
-            background: linear-gradient(135deg, rgba(72, 213, 151, 0.12), rgba(74, 168, 255, 0.10));
-            border: 1px solid rgba(72, 213, 151, 0.45);
-            border-radius: 14px;
-            color: var(--accent);
-            font-size: 24px;
-            font-weight: 900;
-            text-align: center;
-            letter-spacing: -0.02em;
-        }
-
-        .result {
-            margin-top: 0;
-            height: 760px;
-            overflow: auto;
-            position: sticky;
-            top: 20px;
-            padding: 16px;
-            background: #0b0d12;
-            border: 1px solid #2d3545;
-            border-radius: 14px;
-            font-family: Consolas, Monaco, monospace;
-            white-space: pre;
-            line-height: 1.48;
-            color: #d9e3f2;
-        }
-
-        .stage-result {
-            color: var(--accent);
-            font-weight: 900;
-        }
-
-        .final {
-            display: inline-block;
-            margin-top: 4px;
-            color: var(--accent);
-            font-size: 22px;
-            font-weight: 900;
-        }
-
-        .note {
-            color: var(--muted);
-            margin-bottom: 20px;
-        }
-
-        .shared-note {
-            color: var(--muted);
-            font-size: 12px;
-            margin-top: -4px;
-            margin-bottom: 12px;
-        }
-
-        @media (max-width: 1200px) {
-            body {
-                padding: 18px;
-            }
-
-            .hero {
-                display: block;
-            }
-
-            .badge {
-                margin-top: 16px;
-            }
-
-            .calc-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .result {
-                position: static;
-                height: 520px;
-            }
-        }
-    </style>
+.ocr-panel{border:1px dashed rgba(72,213,151,.55);border-radius:16px;padding:16px;background:rgba(72,213,151,.055);margin-bottom:18px}
+.drop-zone{border:1px dashed rgba(74,168,255,.55);border-radius:14px;padding:18px;text-align:center;color:var(--muted);background:rgba(13,15,20,.45);cursor:pointer}
+.drop-zone.dragover{border-color:var(--accent);background:rgba(72,213,151,.12);color:var(--text)}
+.ocr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.ocr-textarea{width:100%;min-height:180px;resize:vertical;padding:12px;background:var(--input);color:var(--text);border:1px solid #384153;border-radius:12px;font-family:Consolas,Monaco,monospace}
+.ocr-status{margin-top:10px;color:#ffd166;font-size:13px}
+.secondary-button{margin-top:10px;background:linear-gradient(135deg,#384153,#253044);box-shadow:none}
+.mapping-list{color:var(--muted);font-size:12px;line-height:1.45;margin:10px 0 0}
+</style>
 </head>
-
 <body>
-<div class="page-shell">
+<div class="page">
+<section class="hero"><div><h1>Raven2 Damage Calculator</h1><p>v0.1.6 theory model: one shared input panel feeds both Skill and Basic calculations. Hidden DR = (DEF + PVP Defense) × 0.75 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100). PvP/Bash are flat damage added after Final Damage Amp, before Skill/Basic Reduction and Final Damage Resistance.</p></div><div class="badge">v0.1.6</div></section>
 
-<section class="hero">
-    <div>
-        <h1>Raven2 Damage Calculator</h1>
-        <p>
-            v0.1.3 theory model: Attack is fully counted. Weapon Attack is reduced by Weapon Attack Resistance, then added to Attack.
-            Hidden DR is estimated as (DEF + PVP Defense) × 0.75 × (1 + Dmg Res When Hit / 100) ÷ (1 + Damage Amp on Hit / 100).
-            PvP and Bash are flat damage added after Final Damage Amp, but before Skill/Basic Reduction and Final Damage Resistance.
-        </p>
-    </div>
-    <div class="badge">v0.1.3</div>
+
+<section class="ocr-panel">
+<h2>Image Stat Import</h2>
+<p class="note">Click the box, drag/drop an image, or copy an image and press Ctrl+V anywhere on this page. OCR runs in your browser through Tesseract.js, so the hosted page needs internet access. Review the detected text, then click <b>Apply Detected Stats</b>.</p>
+<div id="dropZone" class="drop-zone">Drop stat image here, click to choose, or press Ctrl+V after copying an image
+<input id="imageUpload" type="file" accept="image/*" style="display:none;"></div>
+<div class="ocr-status" id="ocrStatus">OCR status: ready</div>
+<div class="ocr-grid">
+<div>
+<h3>Detected Text</h3>
+<textarea id="ocrText" class="ocr-textarea" placeholder="OCR text will appear here. You can also paste text manually."></textarea>
+<button class="secondary-button" onclick="applyDetectedStats()">Apply Detected Stats</button>
+</div>
+<div>
+<h3>Current Stat Mappings</h3>
+<div class="mapping-list">
+ATK → Attack<br>
+Weapon ATK → Weapon Attack<br>
+Basic ATK DMG AMP → Basic Attack Amp %<br>
+Skill DMG AMP + Unique Skill DMG AMP + Heavenstone Skill DMG AMP + Main Target ATK DMG AMP → Skill Amp %<br>
+Final DMG AMP → Final Damage Amp %<br>
+Ignore DMG Reduction → Ignore Damage Reduction<br>
+DMG AMP On ATK → Damage Amp on Hit %<br>
+PvP DMG → PVP Damage<br>
+Bash DMG → Bash Damage<br>
+CRIT DMG AMP → Crit Damage Amp %, if present<br>
+Defender stats need defender screenshots.
+</div>
+</div>
+</div>
 </section>
+<section class="card"><h2>Inputs</h2><div class="input-grid">
+<div class="section"><h3>Shared Attacker</h3>
+<div class="row"><label>Attack</label><input id="attack" value="587"></div>
+<div class="row"><label>Weapon Attack</label><input id="weaponAttack" value="200"></div>
+<div class="row"><label>Weapon Attack Resistance</label><input id="weaponRes" value="5"></div>
+<div class="row"><label>Final Damage Amp %</label><input id="fda" value="31.5"></div>
+<div class="row"><label>Damage Amp on Hit %</label><input id="dmgAmpOnHit" value="13"></div>
+<div class="row"><label>Ignore Damage Reduction</label><input id="ignoreDr" value="103"></div>
+<div class="row"><label>PVP Damage</label><input id="pvpDamage" value="139"></div>
+</div>
+<div class="section"><h3>Hit Type / Critical</h3>
+<div class="row"><label>Bash Damage</label><input id="bashDamage" value="135"></div>
+<div class="row"><label>Bash?</label><input id="isBash" class="checkbox" type="checkbox"></div>
+<div class="row"><label>Double Bash?</label><input id="isDoubleBash" class="checkbox" type="checkbox"></div>
+<div class="row"><label>Critical Hit?</label><input id="isCrit" class="checkbox" type="checkbox"></div>
+<div class="row"><label>Base Crit Multiplier</label><input id="baseCrit" value="1.5"></div>
+<div class="row"><label>Crit Damage Amp %</label><input id="critDmgAmp" value="0"></div>
+<div class="row"><label>Crit Damage Reduction %</label><input id="critDmgReduction" value="13"></div>
+</div>
+<div class="section"><h3>Shared Defender</h3>
+<div class="row"><label>DEF</label><input id="def" value="353"></div>
+<div class="row"><label>PVP Defense</label><input id="pvpDef" value="2"></div>
+<div class="row"><label>Dmg Res When Hit %</label><input id="dmgResWhenHit" value="3"></div>
+<div class="row"><label>DR Stat</label><input id="dr" value="72"></div>
+<div class="row"><label>Final Damage Resistance</label><input id="fdr" value="11"></div>
+<p class="note">DEF-derived DR ratio is currently set to 0.75 for testing.</p>
+</div>
+<div class="section"><h3>Skill / Basic Specific</h3>
+<div class="row"><label>Skill %</label><input id="skill_percent" value="490"></div>
+<div class="row"><label>Skill Amp %</label><input id="skill_amp" value="35"></div>
+<div class="row"><label>Skill Damage Reduction</label><input id="skill_reduction" value="26.5"></div>
+<hr>
+<div class="row"><label>Basic Attack Amp %</label><input id="basic_amp" value="42.5"></div>
+<div class="row"><label>Basic Attack Reduction</label><input id="basic_reduction" value="12.5"></div>
+</div>
+</div></section>
 
-<div class="calculators">
+<section class="results"><div id="skill_final_quick" class="quick">FINAL SKILL DAMAGE: --</div><div id="basic_final_quick" class="quick">FINAL BASIC DAMAGE: --</div></section>
 
-    <div class="card">
-        <h2>Skill Damage Calculator</h2>
-
-        <div class="calc-layout">
-            <div>
-                <h3>Attacker</h3>
-                <p class="shared-note">Shared fields sync with the Basic Attack calculator.</p>
-
-                <div class="row">
-                    <label>Attack</label>
-                    <input id="skill_attack" data-sync="attack" value="587">
-                </div>
-
-                <div class="row">
-                    <label>Weapon Attack</label>
-                    <input id="skill_weaponAttack" data-sync="weaponAttack" value="200">
-                </div>
-
-                <div class="row">
-                    <label>Skill %</label>
-                    <input id="skill_percent" value="490">
-                </div>
-
-                <div class="row">
-                    <label>Skill Amp %</label>
-                    <input id="skill_amp" value="35">
-                </div>
-
-                <div class="row">
-                    <label>Final Damage Amp %</label>
-                    <input id="skill_fda" data-sync="fda" value="31.5">
-                </div>
-
-                <div class="row">
-                    <label>Damage Amp on Hit %</label>
-                    <input id="skill_dmgAmpOnHit" data-sync="dmgAmpOnHit" value="13">
-                </div>
-
-                <div class="row">
-                    <label>Ignore Damage Reduction</label>
-                    <input id="skill_ignoreDr" data-sync="ignoreDr" value="103">
-                </div>
-
-                <div class="row">
-                    <label>PVP Damage</label>
-                    <input id="skill_pvpDamage" data-sync="pvpDamage" value="139">
-                </div>
-
-                <div class="row">
-                    <label>Bash Damage</label>
-                    <input id="skill_bashDamage" data-sync="bashDamage" value="135">
-                </div>
-
-                <div class="row">
-                    <label>Bash?</label>
-                    <input id="skill_isBash" data-sync="isBash" class="checkbox-input" type="checkbox">
-                </div>
-
-                <div class="row">
-                    <label>Double Bash?</label>
-                    <input id="skill_isDoubleBash" data-sync="isDoubleBash" class="checkbox-input" type="checkbox">
-                </div>
-
-                <div class="row">
-                    <label>Critical Hit?</label>
-                    <input id="skill_isCrit" data-sync="isCrit" class="checkbox-input" type="checkbox">
-                </div>
-
-                <div class="row">
-                    <label>Base Crit Multiplier</label>
-                    <input id="skill_baseCrit" data-sync="baseCrit" value="1.5">
-                </div>
-
-                <div class="row">
-                    <label>Crit Damage Amp %</label>
-                    <input id="skill_critDmgAmp" data-sync="critDmgAmp" value="0">
-                </div>
-
-                <h3>Defender</h3>
-
-                <div class="row">
-                    <label>Weapon Attack Resistance</label>
-                    <input id="skill_weaponRes" data-sync="weaponRes" value="5">
-                </div>
-
-                <div class="row">
-                    <label>DEF</label>
-                    <input id="skill_def" data-sync="def" value="353">
-                </div>
-
-                <div class="row">
-                    <label>PVP Defense</label>
-                    <input id="skill_pvpDef" data-sync="pvpDef" value="2">
-                </div>
-
-                <div class="row">
-                    <label>Dmg Res When Hit %</label>
-                    <input id="skill_dmgResWhenHit" data-sync="dmgResWhenHit" value="3">
-                </div>
-
-                <div class="row">
-                    <label>DR Stat</label>
-                    <input id="skill_dr" data-sync="dr" value="72">
-                </div>
-
-                <div class="row">
-                    <label>Skill Damage Reduction</label>
-                    <input id="skill_reduction" value="26.5">
-                </div>
-
-                <div class="row">
-                    <label>Crit Damage Reduction %</label>
-                    <input id="skill_critDmgReduction" data-sync="critDmgReduction" value="13">
-                </div>
-
-                <div class="row">
-                    <label>Final Damage Resistance</label>
-                    <input id="skill_fdr" data-sync="fdr" value="11">
-                </div>
-
-                <button onclick="calculateSkill()">Calculate Skill Damage</button>
-                <div id="skill_final_quick" class="quick-final">FINAL SKILL DAMAGE: --</div>
-            </div>
-
-            <div>
-                <div id="skill_result" class="result"></div>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="card">
-        <h2>Basic Attack Calculator</h2>
-
-        <div class="calc-layout">
-            <div>
-                <h3>Attacker</h3>
-                <p class="shared-note">Shared fields sync with the Skill Damage calculator.</p>
-
-                <div class="row">
-                    <label>Attack</label>
-                    <input id="basic_attack" data-sync="attack" value="587">
-                </div>
-
-                <div class="row">
-                    <label>Weapon Attack</label>
-                    <input id="basic_weaponAttack" data-sync="weaponAttack" value="200">
-                </div>
-
-                <div class="row">
-                    <label>Basic Attack Amp %</label>
-                    <input id="basic_amp" value="42.5">
-                </div>
-
-                <div class="row">
-                    <label>Final Damage Amp %</label>
-                    <input id="basic_fda" data-sync="fda" value="31.5">
-                </div>
-
-                <div class="row">
-                    <label>Damage Amp on Hit %</label>
-                    <input id="basic_dmgAmpOnHit" data-sync="dmgAmpOnHit" value="13">
-                </div>
-
-                <div class="row">
-                    <label>Ignore Damage Reduction</label>
-                    <input id="basic_ignoreDr" data-sync="ignoreDr" value="103">
-                </div>
-
-                <div class="row">
-                    <label>PVP Damage</label>
-                    <input id="basic_pvpDamage" data-sync="pvpDamage" value="139">
-                </div>
-
-                <div class="row">
-                    <label>Bash Damage</label>
-                    <input id="basic_bashDamage" data-sync="bashDamage" value="135">
-                </div>
-
-                <div class="row">
-                    <label>Bash?</label>
-                    <input id="basic_isBash" data-sync="isBash" class="checkbox-input" type="checkbox">
-                </div>
-
-                <div class="row">
-                    <label>Double Bash?</label>
-                    <input id="basic_isDoubleBash" data-sync="isDoubleBash" class="checkbox-input" type="checkbox">
-                </div>
-
-                <div class="row">
-                    <label>Critical Hit?</label>
-                    <input id="basic_isCrit" data-sync="isCrit" class="checkbox-input" type="checkbox">
-                </div>
-
-                <div class="row">
-                    <label>Base Crit Multiplier</label>
-                    <input id="basic_baseCrit" data-sync="baseCrit" value="1.5">
-                </div>
-
-                <div class="row">
-                    <label>Crit Damage Amp %</label>
-                    <input id="basic_critDmgAmp" data-sync="critDmgAmp" value="0">
-                </div>
-
-                <h3>Defender</h3>
-
-                <div class="row">
-                    <label>Weapon Attack Resistance</label>
-                    <input id="basic_weaponRes" data-sync="weaponRes" value="5">
-                </div>
-
-                <div class="row">
-                    <label>DEF</label>
-                    <input id="basic_def" data-sync="def" value="353">
-                </div>
-
-                <div class="row">
-                    <label>PVP Defense</label>
-                    <input id="basic_pvpDef" data-sync="pvpDef" value="2">
-                </div>
-
-                <div class="row">
-                    <label>Dmg Res When Hit %</label>
-                    <input id="basic_dmgResWhenHit" data-sync="dmgResWhenHit" value="3">
-                </div>
-
-                <div class="row">
-                    <label>DR Stat</label>
-                    <input id="basic_dr" data-sync="dr" value="72">
-                </div>
-
-                <div class="row">
-                    <label>Basic Attack Reduction</label>
-                    <input id="basic_reduction" value="12.5">
-                </div>
-
-                <div class="row">
-                    <label>Crit Damage Reduction %</label>
-                    <input id="basic_critDmgReduction" data-sync="critDmgReduction" value="13">
-                </div>
-
-                <div class="row">
-                    <label>Final Damage Resistance</label>
-                    <input id="basic_fdr" data-sync="fdr" value="11">
-                </div>
-
-                <button onclick="calculateBasic()">Calculate Basic Attack Damage</button>
-                <div id="basic_final_quick" class="quick-final">FINAL BASIC DAMAGE: --</div>
-            </div>
-
-            <div>
-                <div id="basic_result" class="result"></div>
-            </div>
-        </div>
-    </div>
-
+<section class="logs"><div class="card"><h2>Skill Calculation</h2><div id="skill_result" class="log"></div></div><div class="card"><h2>Basic Calculation</h2><div id="basic_result" class="log"></div></div></section>
 </div>
 
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-function num(id) {
-    const element = document.getElementById(id);
-    if (!element) return 0;
-    const value = parseFloat(element.value);
-    return isNaN(value) ? 0 : value;
-}
 
-function checked(id) {
-    const element = document.getElementById(id);
-    return element ? element.checked : false;
-}
+function normalizeStatName(name){return name.toLowerCase().replace(/[\s._-]+/g," ").replace(/dmg/g,"damage").replace(/atk/g,"attack").replace(/pvp/g,"pvp").trim();}
+function extractStatPairs(text){const pairs=[];const lines=text.split(/\n+/);for(const rawLine of lines){const line=rawLine.replace(/[|]/g," ").replace(/\s+/g," ").trim();if(!line)continue;const match=line.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*%?\s*$/);if(!match)continue;const name=match[1].trim();const value=parseFloat(match[2]);if(!Number.isFinite(value))continue;pairs.push({name,normalized:normalizeStatName(name),value});}return pairs;}
+function setFieldValue(id,value){const e=document.getElementById(id);if(!e)return false;e.value=value;return true;}
+function applyDetectedStats(){const text=document.getElementById("ocrText").value;const pairs=extractStatPairs(text);const applied=[];let skillAmpTotal=null;for(const pair of pairs){const n=pair.normalized;const v=pair.value;if(n==="attack"){setFieldValue("attack",v);applied.push(`Attack = ${v}`);}else if(n==="weapon attack"){setFieldValue("weaponAttack",v);applied.push(`Weapon Attack = ${v}`);}else if(n==="basic attack damage amp"){setFieldValue("basic_amp",v);applied.push(`Basic Attack Amp = ${v}`);}else if(n==="final damage amp"){setFieldValue("fda",v);applied.push(`Final Damage Amp = ${v}`);}else if(n==="ignore damage reduction"){setFieldValue("ignoreDr",v);applied.push(`Ignore Damage Reduction = ${v}`);}else if(n==="damage amp on attack"){setFieldValue("dmgAmpOnHit",v);applied.push(`Damage Amp on Hit = ${v}`);}else if(n==="pvp damage"){setFieldValue("pvpDamage",v);applied.push(`PVP Damage = ${v}`);}else if(n==="bash damage"){setFieldValue("bashDamage",v);applied.push(`Bash Damage = ${v}`);}else if(n==="crit damage amp"||n==="critical damage amp"){setFieldValue("critDmgAmp",v);applied.push(`Crit Damage Amp = ${v}`);}else if(n==="skill damage amp"||n==="unique skill damage amp"||n==="heavenstone skill damage amp"||n==="main target attack damage amp"){if(skillAmpTotal===null)skillAmpTotal=0;skillAmpTotal+=v;}}if(skillAmpTotal!==null){const total=Number(skillAmpTotal.toFixed(2));setFieldValue("skill_amp",total);applied.push(`Skill Amp total = ${total}`);}updateAll();const status=document.getElementById("ocrStatus");status.textContent=applied.length?`Applied: ${applied.join(", ")}`:"No matching calculator fields found. Edit the detected text manually and try again.";}
+function setupImageImport(){const dropZone=document.getElementById("dropZone");const fileInput=document.getElementById("imageUpload");const status=document.getElementById("ocrStatus");const output=document.getElementById("ocrText");if(!dropZone||!fileInput||!status||!output)return;async function runOcr(file){if(!file){status.textContent="OCR status: no image file found.";return;}if(!file.type||!file.type.startsWith("image/")){status.textContent="OCR status: that file is not an image.";return;}if(!window.Tesseract){status.textContent="OCR library did not load. If testing locally, try GitHub Pages or paste text manually.";return;}status.textContent="OCR status: reading image...";output.value="";try{const result=await Tesseract.recognize(file,"eng",{logger:function(message){if(message.status){const pct=message.progress?` ${Math.round(message.progress*100)}%`:"";status.textContent=`OCR status: ${message.status}${pct}`;}}});output.value=result.data.text||"";status.textContent="OCR status: complete. Review text, then click Apply Detected Stats.";}catch(error){status.textContent="OCR failed. Try a clearer crop, upload instead of paste, or paste text manually.";console.error(error);}}function handleFiles(files){if(!files||!files.length){status.textContent="OCR status: no file received.";return;}runOcr(files[0]);}dropZone.addEventListener("click",function(){fileInput.click();});fileInput.addEventListener("change",function(){handleFiles(fileInput.files);fileInput.value="";});["dragenter","dragover"].forEach(function(eventName){dropZone.addEventListener(eventName,function(event){event.preventDefault();event.stopPropagation();dropZone.classList.add("dragover");status.textContent="OCR status: drop image to import.";});});["dragleave","drop"].forEach(function(eventName){dropZone.addEventListener(eventName,function(event){event.preventDefault();event.stopPropagation();dropZone.classList.remove("dragover");});});dropZone.addEventListener("drop",function(event){handleFiles(event.dataTransfer&&event.dataTransfer.files);});document.addEventListener("paste",function(event){const items=event.clipboardData&&event.clipboardData.items;if(!items)return;for(const item of items){if(item.type&&item.type.startsWith("image/")){const file=item.getAsFile();status.textContent="OCR status: pasted image received.";runOcr(file);event.preventDefault();return;}}});status.textContent="OCR status: ready. Click, drag/drop, or Ctrl+V an image.";}
 
-function fmt(value) {
-    return Number(value).toFixed(2);
-}
 
-function minimumDamage(value) {
-    return Math.max(1, value);
-}
+function num(id){const e=document.getElementById(id); if(!e)return 0; const v=parseFloat(e.value); return isNaN(v)?0:v;}
+function checked(id){const e=document.getElementById(id); return e?e.checked:false;}
+function fmt(v){return Number(v).toFixed(2);}
+function minD(v){return Math.max(1,v);}
+function critLayer(base,isCrit,baseCrit,critAmp,critRed){if(!isCrit)return{mult:1,raw:0,reduced:0,result:base}; const mult=baseCrit*(1+critAmp/100); const raw=base*Math.max(0,mult-1); const reduced=raw/(1+critRed/100); return{mult,raw,reduced,result:base+reduced};}
+function bashInfo(){const b=num('bashDamage'), bash=checked('isBash'), dbl=checked('isDoubleBash'); return{bashDamage:b,isBash:bash,isDoubleBash:dbl,effective:dbl?b*2:(bash?b:0)};}
+function shared(){const attack=num('attack'), weaponAttack=num('weaponAttack'), weaponRes=num('weaponRes'), fda=num('fda'), dmgAmpOnHit=num('dmgAmpOnHit'), ignoreDr=num('ignoreDr'), pvpDamage=num('pvpDamage'), b=bashInfo(), flat=pvpDamage+b.effective, isCrit=checked('isCrit'), baseCrit=num('baseCrit'), critAmp=num('critDmgAmp'), critRed=num('critDmgReduction'), def=num('def'), pvpDef=num('pvpDef'), dmgRes=num('dmgResWhenHit'), totalDef=def+pvpDef, ratio=.75*(1+dmgRes/100)/(1+dmgAmpOnHit/100), hiddenDr=totalDef*ratio, dr=num('dr'), effDr=Math.max(0,dr-ignoreDr), fdr=num('fdr'), weaponDiv=1+weaponRes/100, effWpn=weaponAttack/weaponDiv, totalAttack=attack+effWpn, fdaMult=1+fda/100, fdrDiv=1+fdr/100; return{attack,weaponAttack,weaponRes,fda,dmgAmpOnHit,ignoreDr,pvpDamage,b,flat,isCrit,baseCrit,critAmp,critRed,def,pvpDef,dmgRes,totalDef,ratio,hiddenDr,dr,effDr,fdr,weaponDiv,effWpn,totalAttack,fdaMult,fdrDiv};}
+function quick(id,label,v){document.getElementById(id).innerHTML=`${label}: ${fmt(v)}`;}
+function calculateSkill(){const s=shared(), skillPct=num('skill_percent'), skillAmp=num('skill_amp'), skillRed=num('skill_reduction'), skillMult=skillPct/100, skillAmpMult=1+skillAmp/100, skillRedDiv=1+skillRed/100; const afterHidden=s.totalAttack-s.hiddenDr, afterDr=afterHidden-s.effDr, floored=minD(afterDr), afterSkill=floored*skillMult, afterAmp=afterSkill*skillAmpMult, c=critLayer(afterAmp,s.isCrit,s.baseCrit,s.critAmp,s.critRed), afterFda=c.result*s.fdaMult, afterFlat=afterFda+s.flat, afterRed=afterFlat/skillRedDiv, afterFdr=afterRed/s.fdrDiv, final=minD(afterFdr); const log=`========== SKILL CALCULATION ==========
 
-function applyCrit(baseDamage, isCrit, baseCrit, critDmgAmp, critDmgReduction) {
-    if (!isCrit) {
-        return {
-            critMultiplier: 1,
-            critExtraRaw: 0,
-            critExtraReduced: 0,
-            result: baseDamage
-        };
-    }
+Attack: ${fmt(s.attack)}
+Weapon Attack: ${fmt(s.weaponAttack)}
+Weapon Attack Resistance: ${fmt(s.weaponRes)}%
+Damage Amp on Hit: ${fmt(s.dmgAmpOnHit)}%
+Ignore Damage Reduction: ${fmt(s.ignoreDr)}
+PVP Damage: ${fmt(s.pvpDamage)}
+Bash Damage Stat: ${fmt(s.b.bashDamage)}
+Bash: ${s.b.isBash?'YES':'NO'}
+Double Bash: ${s.b.isDoubleBash?'YES':'NO'}
+Effective Bash Damage: ${fmt(s.b.effective)}
+Flat Bonus Damage Total: ${fmt(s.flat)}
+Critical Hit: ${s.isCrit?'YES':'NO'}
+Base Crit Multiplier: ${fmt(s.baseCrit)}
+Crit Damage Amp: ${fmt(s.critAmp)}%
+Crit Damage Reduction: ${fmt(s.critRed)}%
 
-    const critMultiplier = baseCrit * (1 + critDmgAmp / 100);
-    const critExtraRaw = baseDamage * Math.max(0, critMultiplier - 1);
-    const critExtraReduced = critExtraRaw / (1 + critDmgReduction / 100);
-    const result = baseDamage + critExtraReduced;
-
-    return {
-        critMultiplier,
-        critExtraRaw,
-        critExtraReduced,
-        result
-    };
-}
-
-function getEffectiveBashDamage(prefix) {
-    const bashDamage = num(prefix + "_bashDamage");
-    const isBash = checked(prefix + "_isBash");
-    const isDoubleBash = checked(prefix + "_isDoubleBash");
-
-    if (isDoubleBash) {
-        return {
-            bashDamage,
-            isBash,
-            isDoubleBash,
-            effectiveBashDamage: bashDamage * 2
-        };
-    }
-
-    if (isBash) {
-        return {
-            bashDamage,
-            isBash,
-            isDoubleBash,
-            effectiveBashDamage: bashDamage
-        };
-    }
-
-    return {
-        bashDamage,
-        isBash,
-        isDoubleBash,
-        effectiveBashDamage: 0
-    };
-}
-
-function writeQuickResult(id, label, value) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.innerHTML = `${label}: ${fmt(value)}`;
-    }
-}
-
-function calculateSkill() {
-    const attack = num("skill_attack");
-    const weaponAttack = num("skill_weaponAttack");
-    const weaponRes = num("skill_weaponRes");
-    const skillPercent = num("skill_percent");
-    const skillAmp = num("skill_amp");
-    const fda = num("skill_fda");
-    const dmgAmpOnHit = num("skill_dmgAmpOnHit");
-    const ignoreDr = num("skill_ignoreDr");
-    const pvpDamage = num("skill_pvpDamage");
-    const bash = getEffectiveBashDamage("skill");
-    const flatBonusDamage = pvpDamage + bash.effectiveBashDamage;
-    const isCrit = checked("skill_isCrit");
-    const baseCrit = num("skill_baseCrit");
-    const critDmgAmp = num("skill_critDmgAmp");
-
-    const def = num("skill_def");
-    const pvpDef = num("skill_pvpDef");
-    const dmgResWhenHit = num("skill_dmgResWhenHit");
-    const totalDefense = def + pvpDef;
-    const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
-    const defenseToDrRatio = 0.75 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
-    const hiddenDr = totalDefense * defenseToDrRatio;
-
-    const dr = num("skill_dr");
-    const effectiveDr = Math.max(0, dr - ignoreDr);
-    const skillReduction = num("skill_reduction");
-    const critDmgReduction = num("skill_critDmgReduction");
-    const fdr = num("skill_fdr");
-
-    const weaponResDivisor = 1 + weaponRes / 100;
-    const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
-    const totalAttack = attack + effectiveWeaponAttack;
-
-    const skillMultiplier = skillPercent / 100;
-    const skillAmpMultiplier = 1 + skillAmp / 100;
-    const fdaMultiplier = 1 + fda / 100;
-    const skillReductionDivisor = 1 + skillReduction / 100;
-    const fdrDivisor = 1 + fdr / 100;
-
-    const afterHiddenDr = totalAttack - hiddenDr;
-    const afterDr = afterHiddenDr - effectiveDr;
-    const afterMinimumBeforeScaling = minimumDamage(afterDr);
-    const afterSkillPercent = afterMinimumBeforeScaling * skillMultiplier;
-    const afterSkillAmp = afterSkillPercent * skillAmpMultiplier;
-    const crit = applyCrit(afterSkillAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
-    const afterFda = crit.result * fdaMultiplier;
-    const afterFlatBonus = afterFda + flatBonusDamage;
-    const afterSkillReduction = afterFlatBonus / skillReductionDivisor;
-    const afterFdr = afterSkillReduction / fdrDivisor;
-    const finalDamage = minimumDamage(afterFdr);
-
-    const log = `========== SKILL CALCULATION ==========
-
-Attack: ${fmt(attack)}
-Weapon Attack: ${fmt(weaponAttack)}
-Weapon Attack Resistance: ${fmt(weaponRes)}%
-Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
-Ignore Damage Reduction: ${fmt(ignoreDr)}
-PVP Damage: ${fmt(pvpDamage)}
-Bash Damage Stat: ${fmt(bash.bashDamage)}
-Bash: ${bash.isBash ? "YES" : "NO"}
-Double Bash: ${bash.isDoubleBash ? "YES" : "NO"}
-Effective Bash Damage: ${fmt(bash.effectiveBashDamage)}
-Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
-Critical Hit: ${isCrit ? "YES" : "NO"}
-Base Crit Multiplier: ${fmt(baseCrit)}
-Crit Damage Amp: ${fmt(critDmgAmp)}%
-Crit Damage Reduction: ${fmt(critDmgReduction)}%
-
-DEF: ${fmt(def)}
-PVP Defense: ${fmt(pvpDef)}
-Total Defense: ${fmt(totalDefense)}
-Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
+DEF: ${fmt(s.def)}
+PVP Defense: ${fmt(s.pvpDef)}
+Total Defense: ${fmt(s.totalDef)}
+Dmg Res When Hit: ${fmt(s.dmgRes)}%
 
 Hidden DR from Defense:
-(${fmt(def)} + ${fmt(pvpDef)}) × 0.75 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
+(${fmt(s.def)} + ${fmt(s.pvpDef)}) × 0.75 × (1 + ${fmt(s.dmgRes)} / 100) ÷ (1 + ${fmt(s.dmgAmpOnHit)} / 100) = ${fmt(s.hiddenDr)}
 
 Effective Weapon Attack:
-${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
+${fmt(s.weaponAttack)} ÷ ${fmt(s.weaponDiv)} = ${fmt(s.effWpn)}
 
 Total Attack:
-${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+${fmt(s.attack)} + ${fmt(s.effWpn)} = ${fmt(s.totalAttack)}
 
 Effective DR Stat:
-max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
+max(0, ${fmt(s.dr)} - ${fmt(s.ignoreDr)}) = ${fmt(s.effDr)}
 
 After Hidden DR:
-${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+${fmt(s.totalAttack)} - ${fmt(s.hiddenDr)} = ${fmt(afterHidden)}
 
 After Effective DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
+${fmt(afterHidden)} - ${fmt(s.effDr)} = ${fmt(afterDr)}
 
 Minimum Damage Floor Before Scaling:
-max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeScaling)}
+max(1, ${fmt(afterDr)}) = ${fmt(floored)}
 
 After Skill %:
-${fmt(afterMinimumBeforeScaling)} × ${fmt(skillMultiplier)} = ${fmt(afterSkillPercent)}
+${fmt(floored)} × ${fmt(skillMult)} = ${fmt(afterSkill)}
 
 After Skill Amp:
-${fmt(afterSkillPercent)} × ${fmt(skillAmpMultiplier)} = ${fmt(afterSkillAmp)}
+${fmt(afterSkill)} × ${fmt(skillAmpMult)} = ${fmt(afterAmp)}
 
 Critical Hit Layer:
-Base damage: ${fmt(afterSkillAmp)}
-Raw crit extra: ${fmt(afterSkillAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
-Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
-After Crit: ${fmt(afterSkillAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
+Base damage: ${fmt(afterAmp)}
+Raw crit extra: ${fmt(afterAmp)} × (${fmt(c.mult)} - 1) = ${fmt(c.raw)}
+Reduced crit extra: ${fmt(c.raw)} ÷ (1 + ${fmt(s.critRed)} / 100) = ${fmt(c.reduced)}
+After Crit: ${fmt(afterAmp)} + ${fmt(c.reduced)} = ${fmt(c.result)}
 
 After Final Damage Amp:
-${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
+${fmt(c.result)} × ${fmt(s.fdaMult)} = ${fmt(afterFda)}
 
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bash.effectiveBashDamage)} = ${fmt(afterFlatBonus)}
+${fmt(afterFda)} + ${fmt(s.pvpDamage)} + ${fmt(s.b.effective)} = ${fmt(afterFlat)}
 
 After Skill Damage Reduction:
-${fmt(afterFlatBonus)} ÷ ${fmt(skillReductionDivisor)} = ${fmt(afterSkillReduction)}
+${fmt(afterFlat)} ÷ ${fmt(skillRedDiv)} = ${fmt(afterRed)}
 
 After Final Damage Resistance:
-${fmt(afterSkillReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
+${fmt(afterRed)} ÷ ${fmt(s.fdrDiv)} = ${fmt(afterFdr)}
 
 Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
+max(1, ${fmt(afterFdr)}) = ${fmt(final)}
 
-<span class="final">FINAL SKILL DAMAGE: ${fmt(finalDamage)}</span>`;
+<span class="final">FINAL SKILL DAMAGE: ${fmt(final)}</span>`; document.getElementById('skill_result').innerHTML=log; quick('skill_final_quick','FINAL SKILL DAMAGE',final);}
+function calculateBasic(){const s=shared(), basicAmp=num('basic_amp'), basicRed=num('basic_reduction'), basicMult=1+basicAmp/100, basicRedDiv=1+basicRed/100; const afterHidden=s.totalAttack-s.hiddenDr, afterDr=afterHidden-s.effDr, floored=minD(afterDr), afterBasic=floored*basicMult, c=critLayer(afterBasic,s.isCrit,s.baseCrit,s.critAmp,s.critRed), afterFda=c.result*s.fdaMult, afterFlat=afterFda+s.flat, afterRed=afterFlat/basicRedDiv, afterFdr=afterRed/s.fdrDiv, final=minD(afterFdr); const log=`========== BASIC ATTACK CALCULATION ==========
 
-    document.getElementById("skill_result").innerHTML = log;
-    writeQuickResult("skill_final_quick", "FINAL SKILL DAMAGE", finalDamage);
-}
+Attack: ${fmt(s.attack)}
+Weapon Attack: ${fmt(s.weaponAttack)}
+Weapon Attack Resistance: ${fmt(s.weaponRes)}%
+Damage Amp on Hit: ${fmt(s.dmgAmpOnHit)}%
+Ignore Damage Reduction: ${fmt(s.ignoreDr)}
+PVP Damage: ${fmt(s.pvpDamage)}
+Bash Damage Stat: ${fmt(s.b.bashDamage)}
+Bash: ${s.b.isBash?'YES':'NO'}
+Double Bash: ${s.b.isDoubleBash?'YES':'NO'}
+Effective Bash Damage: ${fmt(s.b.effective)}
+Flat Bonus Damage Total: ${fmt(s.flat)}
+Critical Hit: ${s.isCrit?'YES':'NO'}
+Base Crit Multiplier: ${fmt(s.baseCrit)}
+Crit Damage Amp: ${fmt(s.critAmp)}%
+Crit Damage Reduction: ${fmt(s.critRed)}%
 
-function calculateBasic() {
-    const attack = num("basic_attack");
-    const weaponAttack = num("basic_weaponAttack");
-    const weaponRes = num("basic_weaponRes");
-    const basicAmp = num("basic_amp");
-    const fda = num("basic_fda");
-    const dmgAmpOnHit = num("basic_dmgAmpOnHit");
-    const ignoreDr = num("basic_ignoreDr");
-    const pvpDamage = num("basic_pvpDamage");
-    const bash = getEffectiveBashDamage("basic");
-    const flatBonusDamage = pvpDamage + bash.effectiveBashDamage;
-    const isCrit = checked("basic_isCrit");
-    const baseCrit = num("basic_baseCrit");
-    const critDmgAmp = num("basic_critDmgAmp");
-
-    const def = num("basic_def");
-    const pvpDef = num("basic_pvpDef");
-    const dmgResWhenHit = num("basic_dmgResWhenHit");
-    const totalDefense = def + pvpDef;
-    const dmgAmpOnHitDivisor = 1 + dmgAmpOnHit / 100;
-    const defenseToDrRatio = 0.75 * (1 + dmgResWhenHit / 100) / dmgAmpOnHitDivisor;
-    const hiddenDr = totalDefense * defenseToDrRatio;
-
-    const dr = num("basic_dr");
-    const effectiveDr = Math.max(0, dr - ignoreDr);
-    const basicReduction = num("basic_reduction");
-    const critDmgReduction = num("basic_critDmgReduction");
-    const fdr = num("basic_fdr");
-
-    const weaponResDivisor = 1 + weaponRes / 100;
-    const effectiveWeaponAttack = weaponAttack / weaponResDivisor;
-    const totalAttack = attack + effectiveWeaponAttack;
-
-    const basicAmpMultiplier = 1 + basicAmp / 100;
-    const fdaMultiplier = 1 + fda / 100;
-    const basicReductionDivisor = 1 + basicReduction / 100;
-    const fdrDivisor = 1 + fdr / 100;
-
-    const afterHiddenDr = totalAttack - hiddenDr;
-    const afterDr = afterHiddenDr - effectiveDr;
-    const afterMinimumBeforeScaling = minimumDamage(afterDr);
-    const afterBasicAmp = afterMinimumBeforeScaling * basicAmpMultiplier;
-    const crit = applyCrit(afterBasicAmp, isCrit, baseCrit, critDmgAmp, critDmgReduction);
-    const afterFda = crit.result * fdaMultiplier;
-    const afterFlatBonus = afterFda + flatBonusDamage;
-    const afterBasicReduction = afterFlatBonus / basicReductionDivisor;
-    const afterFdr = afterBasicReduction / fdrDivisor;
-    const finalDamage = minimumDamage(afterFdr);
-
-    const log = `========== BASIC ATTACK CALCULATION ==========
-
-Attack: ${fmt(attack)}
-Weapon Attack: ${fmt(weaponAttack)}
-Weapon Attack Resistance: ${fmt(weaponRes)}%
-Damage Amp on Hit: ${fmt(dmgAmpOnHit)}%
-Ignore Damage Reduction: ${fmt(ignoreDr)}
-PVP Damage: ${fmt(pvpDamage)}
-Bash Damage Stat: ${fmt(bash.bashDamage)}
-Bash: ${bash.isBash ? "YES" : "NO"}
-Double Bash: ${bash.isDoubleBash ? "YES" : "NO"}
-Effective Bash Damage: ${fmt(bash.effectiveBashDamage)}
-Flat Bonus Damage Total: ${fmt(flatBonusDamage)}
-Critical Hit: ${isCrit ? "YES" : "NO"}
-Base Crit Multiplier: ${fmt(baseCrit)}
-Crit Damage Amp: ${fmt(critDmgAmp)}%
-Crit Damage Reduction: ${fmt(critDmgReduction)}%
-
-DEF: ${fmt(def)}
-PVP Defense: ${fmt(pvpDef)}
-Total Defense: ${fmt(totalDefense)}
-Dmg Res When Hit: ${fmt(dmgResWhenHit)}%
+DEF: ${fmt(s.def)}
+PVP Defense: ${fmt(s.pvpDef)}
+Total Defense: ${fmt(s.totalDef)}
+Dmg Res When Hit: ${fmt(s.dmgRes)}%
 
 Hidden DR from Defense:
-(${fmt(def)} + ${fmt(pvpDef)}) × 0.75 × (1 + ${fmt(dmgResWhenHit)} / 100) ÷ (1 + ${fmt(dmgAmpOnHit)} / 100) = ${fmt(hiddenDr)}
+(${fmt(s.def)} + ${fmt(s.pvpDef)}) × 0.75 × (1 + ${fmt(s.dmgRes)} / 100) ÷ (1 + ${fmt(s.dmgAmpOnHit)} / 100) = ${fmt(s.hiddenDr)}
 
 Effective Weapon Attack:
-${fmt(weaponAttack)} ÷ ${fmt(weaponResDivisor)} = ${fmt(effectiveWeaponAttack)}
+${fmt(s.weaponAttack)} ÷ ${fmt(s.weaponDiv)} = ${fmt(s.effWpn)}
 
 Total Attack:
-${fmt(attack)} + ${fmt(effectiveWeaponAttack)} = ${fmt(totalAttack)}
+${fmt(s.attack)} + ${fmt(s.effWpn)} = ${fmt(s.totalAttack)}
 
 Effective DR Stat:
-max(0, ${fmt(dr)} - ${fmt(ignoreDr)}) = ${fmt(effectiveDr)}
+max(0, ${fmt(s.dr)} - ${fmt(s.ignoreDr)}) = ${fmt(s.effDr)}
 
 After Hidden DR:
-${fmt(totalAttack)} - ${fmt(hiddenDr)} = ${fmt(afterHiddenDr)}
+${fmt(s.totalAttack)} - ${fmt(s.hiddenDr)} = ${fmt(afterHidden)}
 
 After Effective DR Stat:
-${fmt(afterHiddenDr)} - ${fmt(effectiveDr)} = ${fmt(afterDr)}
+${fmt(afterHidden)} - ${fmt(s.effDr)} = ${fmt(afterDr)}
 
 Minimum Damage Floor Before Scaling:
-max(1, ${fmt(afterDr)}) = ${fmt(afterMinimumBeforeScaling)}
+max(1, ${fmt(afterDr)}) = ${fmt(floored)}
 
 After Basic Attack Amp:
-${fmt(afterMinimumBeforeScaling)} × ${fmt(basicAmpMultiplier)} = ${fmt(afterBasicAmp)}
+${fmt(floored)} × ${fmt(basicMult)} = ${fmt(afterBasic)}
 
 Critical Hit Layer:
-Base damage: ${fmt(afterBasicAmp)}
-Raw crit extra: ${fmt(afterBasicAmp)} × (${fmt(crit.critMultiplier)} - 1) = ${fmt(crit.critExtraRaw)}
-Reduced crit extra: ${fmt(crit.critExtraRaw)} ÷ (1 + ${fmt(critDmgReduction)} / 100) = ${fmt(crit.critExtraReduced)}
-After Crit: ${fmt(afterBasicAmp)} + ${fmt(crit.critExtraReduced)} = ${fmt(crit.result)}
+Base damage: ${fmt(afterBasic)}
+Raw crit extra: ${fmt(afterBasic)} × (${fmt(c.mult)} - 1) = ${fmt(c.raw)}
+Reduced crit extra: ${fmt(c.raw)} ÷ (1 + ${fmt(s.critRed)} / 100) = ${fmt(c.reduced)}
+After Crit: ${fmt(afterBasic)} + ${fmt(c.reduced)} = ${fmt(c.result)}
 
 After Final Damage Amp:
-${fmt(crit.result)} × ${fmt(fdaMultiplier)} = ${fmt(afterFda)}
+${fmt(c.result)} × ${fmt(s.fdaMult)} = ${fmt(afterFda)}
 
 After Flat Bonus Damage:
-${fmt(afterFda)} + ${fmt(pvpDamage)} + ${fmt(bash.effectiveBashDamage)} = ${fmt(afterFlatBonus)}
+${fmt(afterFda)} + ${fmt(s.pvpDamage)} + ${fmt(s.b.effective)} = ${fmt(afterFlat)}
 
 After Basic Attack Reduction:
-${fmt(afterFlatBonus)} ÷ ${fmt(basicReductionDivisor)} = ${fmt(afterBasicReduction)}
+${fmt(afterFlat)} ÷ ${fmt(basicRedDiv)} = ${fmt(afterRed)}
 
 After Final Damage Resistance:
-${fmt(afterBasicReduction)} ÷ ${fmt(fdrDivisor)} = ${fmt(afterFdr)}
+${fmt(afterRed)} ÷ ${fmt(s.fdrDiv)} = ${fmt(afterFdr)}
 
 Final Minimum Damage Floor:
-max(1, ${fmt(afterFdr)}) = ${fmt(finalDamage)}
+max(1, ${fmt(afterFdr)}) = ${fmt(final)}
 
-<span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(finalDamage)}</span>`;
-
-    document.getElementById("basic_result").innerHTML = log;
-    writeQuickResult("basic_final_quick", "FINAL BASIC DAMAGE", finalDamage);
-}
-
-let isSyncing = false;
-
-function syncSharedField(source) {
-    if (isSyncing) return;
-
-    const key = source.dataset.sync;
-    if (!key) return;
-
-    isSyncing = true;
-
-    document.querySelectorAll(`[data-sync="${key}"]`).forEach(function(target) {
-        if (target === source) return;
-
-        if (source.type === "checkbox") {
-            target.checked = source.checked;
-        } else {
-            target.value = source.value;
-        }
-    });
-
-    isSyncing = false;
-}
-
-function setupLiveUpdates() {
-    document.querySelectorAll("input").forEach(function(element) {
-        element.addEventListener("input", function() {
-            syncSharedField(element);
-            calculateSkill();
-            calculateBasic();
-        });
-
-        element.addEventListener("change", function() {
-            syncSharedField(element);
-            calculateSkill();
-            calculateBasic();
-        });
-    });
-}
-
-setupLiveUpdates();
-calculateSkill();
-calculateBasic();
+<span class="final">FINAL BASIC ATTACK DAMAGE: ${fmt(final)}</span>`; document.getElementById('basic_result').innerHTML=log; quick('basic_final_quick','FINAL BASIC DAMAGE',final);}
+function updateAll(){calculateSkill();calculateBasic();}
+document.querySelectorAll('input').forEach(e=>{e.addEventListener('input',updateAll);e.addEventListener('change',updateAll)});setupImageImport();updateAll();
 </script>
-
 </body>
 </html>
