@@ -1,4 +1,4 @@
-<!-- Raven2Calculator_v0.2.1
+<!-- Raven2Calculator_v0.2.2
 Changed:
 - Added click upload, drag/drop, and Ctrl+V paste image OCR import.
 - One shared input panel instead of duplicate Skill/Basic fields.
@@ -11,7 +11,7 @@ Changed:
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Raven2 Damage Calculator v0.2.1</title>
+<title>Raven2 Damage Calculator v0.2.2</title>
 <style>
 :root{
   --bg:#0b1220;
@@ -106,7 +106,7 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
       <div class="brand-title">Raven2 Damage Calculator</div>
       <div class="brand-sub">Theorycrafting & Damage Testing</div>
     </div>
-    <div style="margin-left:auto;color:#9fb2cc;font-weight:700">Formula Version v0.2.1</div>
+    <div style="margin-left:auto;color:#9fb2cc;font-weight:700">Formula Version v0.2.2</div>
   </div>
 </div>
 <div class="content">
@@ -152,7 +152,7 @@ DMG AMP On ATK → Damage Amp on Hit %<br>
 PvP DMG → PVP Damage<br>
 Bash DMG → Bash Damage<br>
 CRIT DMG AMP → Crit Damage Amp %, if present<br>
-PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>Basic ATK DMG RES Rate → Basic Attack Reduction<br>Skill DMG RES Rate → Skill Damage Reduction<br>Final DMG RES Rate → Final Damage Resistance<br>DMG Reduction → DR Stat<br>DMG RES Rate When Hit → Dmg Res When Hit %<br>CRIT DMG RES Rate → Crit Damage Reduction %<br>Large percent OCR reads like 445 are auto-corrected to 44.5.
+PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>Basic ATK DMG RES Rate → Basic Attack Reduction<br>Skill DMG RES Rate → Skill Damage Reduction<br>Final DMG RES Rate → Final Damage Resistance<br>DMG Reduction → DR Stat<br>DMG RES Rate When Hit → Dmg Res When Hit %<br>CRIT DMG RES Rate → Crit Damage Reduction %<br>Large percent OCR reads like 445 are auto-corrected to 44.5.<br>Combat bar OCR reads like 1816 609 691 are corrected to 816 609 691.
 </div>
 </div>
 </div>
@@ -263,8 +263,22 @@ function fixPercentOcr(value) {
 function setFieldValue(id,value){const e=document.getElementById(id);if(!e)return false;e.value=value;return true;}
 
 
+
+function normalizeCombatNumber(value, index) {
+    // Tesseract sometimes reads the small icon before ATK as a leading "1":
+    // 816 can become 1816. For the first combat-bar value only, correct this.
+    if (index === 0 && value >= 1000 && value < 2000) {
+        const corrected = value - 1000;
+        if (corrected >= 50) return corrected;
+    }
+    return value;
+}
+
 function findTopCombatStats(text) {
-    const lines = text.split(/\n+/).map(l => l.replace(/[|,]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
+    const lines = text
+        .split(/\n+/)
+        .map(l => l.replace(/[|,]/g, " ").replace(/\s+/g, " ").trim())
+        .filter(Boolean);
 
     for (let i = 0; i < lines.length; i++) {
         const lower = lines[i].toLowerCase();
@@ -273,15 +287,21 @@ function findTopCombatStats(text) {
             break;
         }
 
+        // Pull digit groups even if OCR glued letters to them, e.g. W609 -> 609.
         const nums = lines[i].match(/\d+(?:\.\d+)?/g);
         if (nums && nums.length >= 3) {
-            const values = nums.map(Number);
-            const plausible = values.filter(v => v >= 50 && v <= 5000);
-            if (plausible.length >= 3) {
+            let values = nums.map(Number).filter(v => Number.isFinite(v));
+
+            // Keep plausible combat-bar numbers, then take the first 3.
+            values = values.filter(v => v >= 50 && v <= 5000).slice(0, 3);
+
+            if (values.length >= 3) {
+                values = values.map((v, idx) => normalizeCombatNumber(v, idx));
+
                 return {
-                    totalAtk: plausible[0],
-                    totalDef: plausible[1],
-                    thirdStat: plausible[2],
+                    totalAtk: values[0],
+                    totalDef: values[1],
+                    thirdStat: values[2],
                     sourceLine: lines[i]
                 };
             }
@@ -514,7 +534,7 @@ function setupImageImport(){
             if (useRavenMode && combatCanvas && statCanvas) {
                 // Portrait stat page layout:
                 // Combat bar is near top, but we crop away most of the HP badge and buff icon clutter.
-                drawCropToCanvas(img, combatCanvas, 0.12, 0.00, 0.55, 0.09, 4);
+                drawCropToCanvas(img, combatCanvas, 0.15, 0.00, 0.52, 0.09, 4);
 
                 // Stat list is below the Stats/Ongoing Effects header. This works for both ATK and DEF screenshots.
                 drawCropToCanvas(img, statCanvas, 0.00, 0.13, 1.00, 0.87, 2.2);
