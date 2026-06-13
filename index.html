@@ -1,4 +1,4 @@
-<!-- Raven2Calculator_v0.2.2
+<!-- Raven2Calculator_v0.2.4
 Changed:
 - Added click upload, drag/drop, and Ctrl+V paste image OCR import.
 - One shared input panel instead of duplicate Skill/Basic fields.
@@ -11,7 +11,7 @@ Changed:
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Raven2 Damage Calculator v0.2.2</title>
+<title>Raven2 Damage Calculator v0.2.4</title>
 <style>
 :root{
   --bg:#0b1220;
@@ -96,6 +96,12 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 .ocr-preview canvas{width:100%;background:#080d16;border:1px solid #30405b;border-radius:7px}
 .ocr-preview-title{font-size:12px;color:#9fb2cc;margin-bottom:5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 @media(max-width:1000px){.ocr-preview{grid-template-columns:1fr}}
+
+.manual-bar-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.manual-bar-grid .row{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;border-bottom:0;padding:0}
+.preview-single{margin-top:12px}
+.preview-single canvas{width:100%;max-height:360px;object-fit:contain;background:#080d16;border:1px solid #30405b;border-radius:7px}
+@media(max-width:900px){.manual-bar-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -106,7 +112,7 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
       <div class="brand-title">Raven2 Damage Calculator</div>
       <div class="brand-sub">Theorycrafting & Damage Testing</div>
     </div>
-    <div style="margin-left:auto;color:#9fb2cc;font-weight:700">Formula Version v0.2.2</div>
+    <div style="margin-left:auto;color:#9fb2cc;font-weight:700">Formula Version v0.2.4</div>
   </div>
 </div>
 <div class="content">
@@ -119,17 +125,23 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 
 <section class="ocr-panel">
 <h2>Image Stat Import</h2>
-<p class="note">Click the box, drag/drop an image, or copy an image and press Ctrl+V anywhere on this page. Raven2 mode crops the top combat bar and stat list separately before OCR to avoid HP bars and buff icons confusing the read. Review the detected text, then click <b>Apply Detected Stats</b>.</p>
+<p class="note">Click the box, drag/drop an image, or copy an image and press Ctrl+V anywhere on this page. Raven2 mode still uses hidden crops for OCR, but shows one large image preview. The top-bar ATK/DEF boxes can be corrected manually before applying stats. Review the detected text, then click <b>Apply Detected Stats</b>.</p>
 <div id="dropZone" class="drop-zone">Drop stat image here, click to choose, or press Ctrl+V after copying an image
 <input id="imageUpload" type="file" accept="image/*" style="display:none;"></div>
 <div class="ocr-options">
 <label><input id="ravenOcrMode" type="checkbox" checked> Raven2 stat screen mode: OCR combat bar and stat list separately</label>
 </div>
 <div class="ocr-status" id="ocrStatus">OCR status: ready</div>
-<div class="ocr-preview" id="ocrPreview" style="display:none;">
-  <div><div class="ocr-preview-title">Combat Bar Crop</div><canvas id="combatCropPreview"></canvas></div>
-  <div><div class="ocr-preview-title">Stat List Crop</div><canvas id="statCropPreview"></canvas></div>
-  <div><div class="ocr-preview-title">Full Image Preview</div><canvas id="fullPreview"></canvas></div>
+<div class="manual-bar-grid">
+  <div class="row"><label>Detected Total ATK</label><input id="manualTotalAtk" placeholder="auto/manual"></div>
+  <div class="row"><label>Detected DEF</label><input id="manualTotalDef" placeholder="auto/manual"></div>
+  
+</div>
+<div class="preview-single" id="ocrPreview" style="display:none;">
+  <div class="ocr-preview-title">Image Preview</div>
+  <canvas id="fullPreview"></canvas>
+  <canvas id="combatCropPreview" style="display:none;"></canvas>
+  <canvas id="statCropPreview" style="display:none;"></canvas>
 </div>
 <div class="ocr-grid">
 <div>
@@ -152,7 +164,7 @@ DMG AMP On ATK → Damage Amp on Hit %<br>
 PvP DMG → PVP Damage<br>
 Bash DMG → Bash Damage<br>
 CRIT DMG AMP → Crit Damage Amp %, if present<br>
-PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>Basic ATK DMG RES Rate → Basic Attack Reduction<br>Skill DMG RES Rate → Skill Damage Reduction<br>Final DMG RES Rate → Final Damage Resistance<br>DMG Reduction → DR Stat<br>DMG RES Rate When Hit → Dmg Res When Hit %<br>CRIT DMG RES Rate → Crit Damage Reduction %<br>Large percent OCR reads like 445 are auto-corrected to 44.5.<br>Combat bar OCR reads like 1816 609 691 are corrected to 816 609 691.
+PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>Basic ATK DMG RES Rate → Basic Attack Reduction<br>Skill DMG RES Rate → Skill Damage Reduction<br>Final DMG RES Rate → Final Damage Resistance<br>DMG Reduction → DR Stat<br>DMG RES Rate When Hit → Dmg Res When Hit %<br>CRIT DMG RES Rate → Crit Damage Reduction %<br>Large percent OCR reads like 445 are auto-corrected to 44.5.<br>Combat bar OCR accepts two numbers if the third is missed, and top-bar values can be manually corrected before applying.
 </div>
 </div>
 </div>
@@ -264,6 +276,7 @@ function setFieldValue(id,value){const e=document.getElementById(id);if(!e)retur
 
 
 
+
 function normalizeCombatNumber(value, index) {
     // Tesseract sometimes reads the small icon before ATK as a leading "1":
     // 816 can become 1816. For the first combat-bar value only, correct this.
@@ -275,6 +288,19 @@ function normalizeCombatNumber(value, index) {
 }
 
 function findTopCombatStats(text) {
+    const manualAtk = parseFloat(document.getElementById("manualTotalAtk")?.value);
+    const manualDef = parseFloat(document.getElementById("manualTotalDef")?.value);
+    const manualThird = parseFloat(document.getElementById("manualThirdStat")?.value);
+
+    if (Number.isFinite(manualAtk) && Number.isFinite(manualDef)) {
+        return {
+            totalAtk: manualAtk,
+            totalDef: manualDef,
+            thirdStat: Number.isFinite(manualThird) ? manualThird : 0,
+            sourceLine: "manual top-bar override"
+        };
+    }
+
     const lines = text
         .split(/\n+/)
         .map(l => l.replace(/[|,]/g, " ").replace(/\s+/g, " ").trim())
@@ -289,19 +315,19 @@ function findTopCombatStats(text) {
 
         // Pull digit groups even if OCR glued letters to them, e.g. W609 -> 609.
         const nums = lines[i].match(/\d+(?:\.\d+)?/g);
-        if (nums && nums.length >= 3) {
+        if (nums && nums.length >= 2) {
             let values = nums.map(Number).filter(v => Number.isFinite(v));
 
             // Keep plausible combat-bar numbers, then take the first 3.
             values = values.filter(v => v >= 50 && v <= 5000).slice(0, 3);
 
-            if (values.length >= 3) {
+            if (values.length >= 2) {
                 values = values.map((v, idx) => normalizeCombatNumber(v, idx));
 
                 return {
                     totalAtk: values[0],
                     totalDef: values[1],
-                    thirdStat: values[2],
+                    thirdStat: values.length >= 3 ? values[2] : 0,
                     sourceLine: lines[i]
                 };
             }
@@ -548,6 +574,16 @@ ${combatText.trim()}
 
 === STAT LIST OCR ===
 ${statText.trim()}`;
+
+                const parsedTop = findTopCombatStats(output.value);
+                if (parsedTop) {
+                    const atkBox = document.getElementById("manualTotalAtk");
+                    const defBox = document.getElementById("manualTotalDef");
+                    const thirdBox = document.getElementById("manualThirdStat");
+                    if (atkBox) atkBox.value = parsedTop.totalAtk || "";
+                    if (defBox) defBox.value = parsedTop.totalDef || "";
+                    if (thirdBox) thirdBox.value = parsedTop.thirdStat || "";
+                }
             } else {
                 const full = fullCanvas || document.createElement("canvas");
                 if (!fullCanvas) drawCropToCanvas(img, full, 0, 0, 1, 1, 1.5);
