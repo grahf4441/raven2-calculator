@@ -1,17 +1,17 @@
-<!-- Raven2Calculator_v0.2.4
+<!--
+Raven2Calculator_v0.2.6
+
 Changed:
-- Added click upload, drag/drop, and Ctrl+V paste image OCR import.
-- One shared input panel instead of duplicate Skill/Basic fields.
-- Condensed inputs into multi-column sections near the top.
-- Final Skill and Basic results appear side-by-side under inputs.
-- Full calculation logs appear below results.
-- Formula assumptions unchanged from v0.1.3.
+- DEF-derived hidden DR ratio changed from 0.75 to 0.50.
+- Kept DR/Hidden DR before skill/basic scaling.
+- Weapon Attack Resistance should be grouped under Shared Defender.
+- Bash/PvP behavior unchanged from current test model.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Raven2 Damage Calculator v0.2.4</title>
+<title>Raven2 Damage Calculator v0.2.6</title>
 <style>
 :root{
   --bg:#0b1220;
@@ -112,7 +112,7 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
       <div class="brand-title">Raven2 Damage Calculator</div>
       <div class="brand-sub">Theorycrafting & Damage Testing</div>
     </div>
-    <div style="margin-left:auto;color:#9fb2cc;font-weight:700">Formula Version v0.2.4</div>
+    <div style="margin-left:auto;color:#9fb2cc;font-weight:700">Formula Version v0.2.6</div>
   </div>
 </div>
 <div class="content">
@@ -173,7 +173,7 @@ PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>B
 <div class="section"><h3>Shared Attacker</h3>
 <div class="row"><label>Attack</label><input id="attack" value="587"></div>
 <div class="row"><label>Weapon Attack</label><input id="weaponAttack" value="200"></div>
-<div class="row"><label>Weapon Attack Resistance</label><input id="weaponRes" value="5"></div>
+
 <div class="row"><label>Final Damage Amp %</label><input id="fda" value="31.5"></div>
 <div class="row"><label>Damage Amp on Hit %</label><input id="dmgAmpOnHit" value="13"></div>
 <div class="row"><label>Ignore Damage Reduction</label><input id="ignoreDr" value="103"></div>
@@ -189,12 +189,13 @@ PvP DEF → PVP Defense<br>Weapon ATK RES Rate → Weapon Attack Resistance<br>B
 <div class="row"><label>Crit Damage Reduction %</label><input id="critDmgReduction" value="13"></div>
 </div>
 <div class="section"><h3>Shared Defender</h3>
+
 <div class="row"><label>DEF</label><input id="def" value="353"></div>
 <div class="row"><label>PVP Defense</label><input id="pvpDef" value="2"></div>
 <div class="row"><label>Dmg Res When Hit %</label><input id="dmgResWhenHit" value="3"></div>
 <div class="row"><label>DR Stat</label><input id="dr" value="72"></div>
 <div class="row"><label>Final Damage Resistance</label><input id="fdr" value="11"></div>
-<p class="note">DEF-derived DR ratio is currently set to 0.75 for testing.</p>
+<p class="note">DEF-derived DR ratio is currently set to 0.50 for testing.</p>
 </div>
 <div class="section"><h3>Skill / Basic Specific</h3>
 <div class="row"><label>Skill %</label><input id="skill_percent" value="490"></div>
@@ -614,7 +615,7 @@ function fmt(v){return Number(v).toFixed(2);}
 function minD(v){return Math.max(1,v);}
 function critLayer(base,isCrit,baseCrit,critAmp,critRed){if(!isCrit)return{mult:1,raw:0,reduced:0,result:base}; const mult=baseCrit*(1+critAmp/100); const raw=base*Math.max(0,mult-1); const reduced=raw/(1+critRed/100); return{mult,raw,reduced,result:base+reduced};}
 function bashInfo(){const b=num('bashDamage'), bash=checked('isBash'), dbl=checked('isDoubleBash'); return{bashDamage:b,isBash:bash,isDoubleBash:dbl,effective:dbl?b*2:(bash?b:0)};}
-function shared(){const attack=num('attack'), weaponAttack=num('weaponAttack'), weaponRes=num('weaponRes'), fda=num('fda'), dmgAmpOnHit=num('dmgAmpOnHit'), ignoreDr=num('ignoreDr'), pvpDamage=num('pvpDamage'), b=bashInfo(), flat=pvpDamage+b.effective, isCrit=checked('isCrit'), baseCrit=num('baseCrit'), critAmp=num('critDmgAmp'), critRed=num('critDmgReduction'), def=num('def'), pvpDef=num('pvpDef'), dmgRes=num('dmgResWhenHit'), totalDef=def+pvpDef, ratio=.75*(1+dmgRes/100)/(1+dmgAmpOnHit/100), hiddenDr=totalDef*ratio, dr=num('dr'), effDr=Math.max(0,dr-ignoreDr), fdr=num('fdr'), weaponDiv=1+weaponRes/100, effWpn=weaponAttack/weaponDiv, totalAttack=attack+effWpn, fdaMult=1+fda/100, fdrDiv=1+fdr/100; return{attack,weaponAttack,weaponRes,fda,dmgAmpOnHit,ignoreDr,pvpDamage,b,flat,isCrit,baseCrit,critAmp,critRed,def,pvpDef,dmgRes,totalDef,ratio,hiddenDr,dr,effDr,fdr,weaponDiv,effWpn,totalAttack,fdaMult,fdrDiv};}
+function shared(){const attack=num('attack'), weaponAttack=num('weaponAttack'), weaponRes=num('weaponRes'), fda=num('fda'), dmgAmpOnHit=num('dmgAmpOnHit'), ignoreDr=num('ignoreDr'), pvpDamage=num('pvpDamage'), b=bashInfo(), flat=pvpDamage+b.effective, isCrit=checked('isCrit'), baseCrit=num('baseCrit'), critAmp=num('critDmgAmp'), critRed=num('critDmgReduction'), def=num('def'), pvpDef=num('pvpDef'), dmgRes=num('dmgResWhenHit'), totalDef=def+pvpDef, ratio=.5*(1+dmgRes/100)/(1+dmgAmpOnHit/100), hiddenDr=totalDef*ratio, dr=num('dr'), effDr=Math.max(0,dr-ignoreDr), fdr=num('fdr'), weaponDiv=1+weaponRes/100, effWpn=weaponAttack/weaponDiv, totalAttack=attack+effWpn, fdaMult=1+fda/100, fdrDiv=1+fdr/100; return{attack,weaponAttack,weaponRes,fda,dmgAmpOnHit,ignoreDr,pvpDamage,b,flat,isCrit,baseCrit,critAmp,critRed,def,pvpDef,dmgRes,totalDef,ratio,hiddenDr,dr,effDr,fdr,weaponDiv,effWpn,totalAttack,fdaMult,fdrDiv};}
 function quick(id,label,v){document.getElementById(id).innerHTML=`${label}: ${fmt(v)}`;}
 function calculateSkill(){const s=shared(), skillPct=num('skill_percent'), skillAmp=num('skill_amp'), skillRed=num('skill_reduction'), skillMult=skillPct/100, skillAmpMult=1+skillAmp/100, skillRedDiv=1+skillRed/100; const afterHidden=s.totalAttack-s.hiddenDr, afterDr=afterHidden-s.effDr, floored=minD(afterDr), afterSkill=floored*skillMult, afterAmp=afterSkill*skillAmpMult, c=critLayer(afterAmp,s.isCrit,s.baseCrit,s.critAmp,s.critRed), afterFda=c.result*s.fdaMult, afterFlat=afterFda+s.flat, afterRed=afterFlat/skillRedDiv, afterFdr=afterRed/s.fdrDiv, final=minD(afterFdr); const log=`========== SKILL CALCULATION ==========
 
@@ -640,7 +641,7 @@ Total Defense: ${fmt(s.totalDef)}
 Dmg Res When Hit: ${fmt(s.dmgRes)}%
 
 Hidden DR from Defense:
-(${fmt(s.def)} + ${fmt(s.pvpDef)}) × 0.75 × (1 + ${fmt(s.dmgRes)} / 100) ÷ (1 + ${fmt(s.dmgAmpOnHit)} / 100) = ${fmt(s.hiddenDr)}
+(${fmt(s.def)} + ${fmt(s.pvpDef)}) × 0.50 × (1 + ${fmt(s.dmgRes)} / 100) ÷ (1 + ${fmt(s.dmgAmpOnHit)} / 100) = ${fmt(s.hiddenDr)}
 
 Effective Weapon Attack:
 ${fmt(s.weaponAttack)} ÷ ${fmt(s.weaponDiv)} = ${fmt(s.effWpn)}
@@ -712,7 +713,7 @@ Total Defense: ${fmt(s.totalDef)}
 Dmg Res When Hit: ${fmt(s.dmgRes)}%
 
 Hidden DR from Defense:
-(${fmt(s.def)} + ${fmt(s.pvpDef)}) × 0.75 × (1 + ${fmt(s.dmgRes)} / 100) ÷ (1 + ${fmt(s.dmgAmpOnHit)} / 100) = ${fmt(s.hiddenDr)}
+(${fmt(s.def)} + ${fmt(s.pvpDef)}) × 0.50 × (1 + ${fmt(s.dmgRes)} / 100) ÷ (1 + ${fmt(s.dmgAmpOnHit)} / 100) = ${fmt(s.hiddenDr)}
 
 Effective Weapon Attack:
 ${fmt(s.weaponAttack)} ÷ ${fmt(s.weaponDiv)} = ${fmt(s.effWpn)}
